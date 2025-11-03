@@ -81,6 +81,8 @@ export async function GET(request: NextRequest) {
       userMetadata: session.user?.user_metadata,
       // Logger les clés disponibles pour debug
       sessionKeys: Object.keys(session),
+      // Logger toute la session pour voir ce qui est disponible
+      fullSession: JSON.stringify(session, null, 2).substring(0, 500),
     })
 
     // Essayer de récupérer les contributions si on a un provider_token
@@ -90,12 +92,32 @@ export async function GET(request: NextRequest) {
 
     // Le provider_token peut être dans session.provider_token
     // Note: Supabase stocke le token OAuth dans provider_token seulement si configuré correctement
-    const githubToken = session.provider_token
+    // On peut aussi essayer de récupérer le token depuis les identities de l'utilisateur
+    let githubToken = session.provider_token
     
-    // Si pas de provider_token, vérifier si on peut utiliser access_token
-    // (généralement non, mais essayons pour debug)
-    if (!githubToken && session.access_token) {
-      console.log('No provider_token found, trying with access_token (may not work)...')
+    // Si pas de provider_token, essayer de le récupérer depuis les identities de l'utilisateur
+    if (!githubToken && session.user?.identities) {
+      console.log('Trying to get token from user identities...')
+      const githubIdentity = session.user.identities.find((identity: any) => identity.provider === 'github')
+      if (githubIdentity?.identity_data?.access_token) {
+        githubToken = githubIdentity.identity_data.access_token
+        console.log('Found token in identity_data')
+      }
+    }
+    
+    // Si toujours pas de token, essayer de récupérer depuis la session via l'API Supabase
+    if (!githubToken) {
+      console.log('No provider_token found, trying to get from Supabase API...')
+      try {
+        // Récupérer la session complète depuis Supabase
+        const { data: { session: fullSession }, error: sessionError } = await supabase.auth.getSession()
+        if (!sessionError && fullSession?.provider_token) {
+          githubToken = fullSession.provider_token
+          console.log('Found token in getSession()')
+        }
+      } catch (error) {
+        console.error('Error getting session:', error)
+      }
     }
     
     if (githubToken) {
@@ -131,12 +153,15 @@ export async function GET(request: NextRequest) {
       id: session.user.id,
       github_username: githubUsername,
       github_id: githubId,
-      github_token: session.provider_token || session.provider_refresh_token || null,
+      // Utiliser le token qu'on a trouvé (peu importe d'où il vient)
+      github_token: githubToken || session.provider_token || session.provider_refresh_token || null,
       avatar_url: avatarUrl,
       contributions_data: contributions,
       total_contributions: totalContributions,
       last_updated: new Date().toISOString(),
     }
+    
+    console.log('Saving profile with token:', githubToken ? 'present' : 'missing')
 
     const { error: upsertError } = await supabase
       .from('profiles')
