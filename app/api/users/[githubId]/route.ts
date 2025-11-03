@@ -3,9 +3,10 @@ import { createClient } from '@/lib/supabase'
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { githubId: string } }
+  { params }: { params: Promise<{ githubId: string }> }
 ) {
   try {
+    const { githubId } = await params
     const body = await request.json()
     const { display_username, website_url } = body
 
@@ -27,7 +28,7 @@ export async function PATCH(
         display_username,
         website_url,
       })
-      .eq('github_id', params.githubId)
+      .eq('github_id', githubId)
       .eq('id', user.id) // S'assurer que c'est bien le profil de l'utilisateur
       .select()
       .single()

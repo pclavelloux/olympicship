@@ -3,9 +3,10 @@ import { createServerClient } from '@supabase/ssr'
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { githubId: string } }
+  { params }: { params: Promise<{ githubId: string }> }
 ) {
   try {
+    const { githubId } = await params
     const response = NextResponse.next()
     
     const supabase = createServerClient(
@@ -43,7 +44,7 @@ export async function DELETE(
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('id')
-      .eq('github_id', params.githubId)
+      .eq('github_id', githubId)
       .eq('id', user.id)
       .single()
 

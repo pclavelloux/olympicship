@@ -122,7 +122,11 @@ export default function Topbar({
             <button className="btn btn-ghost btn-circle rounded-gh">
               <div className="avatar placeholder">
                 <div className="bg-base-300 text-base-content w-8 rounded-full">
-                  <span className="text-xs">{currentUser?.email?.[0]?.toUpperCase() ?? '+'}</span>
+                  <span className="text-xs">
+                    {currentUser?.display_username?.[0]?.toUpperCase() || 
+                     currentUser?.github_username?.[0]?.toUpperCase() || 
+                     '+'}
+                  </span>
                 </div>
               </div>
             </button>

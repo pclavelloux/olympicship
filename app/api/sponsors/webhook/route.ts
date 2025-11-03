@@ -100,12 +100,19 @@ export async function POST(request: Request) {
       case 'invoice.paid': {
         const invoice = event.data.object as Stripe.Invoice
 
-        if (invoice.subscription) {
+        // invoice.subscription peut être string | Stripe.Subscription | null
+        // Note: subscription n'est pas toujours typé directement dans Stripe.Invoice
+        const subscription = (invoice as any).subscription as string | Stripe.Subscription | null | undefined
+        const subscriptionId = typeof subscription === 'string' 
+          ? subscription 
+          : subscription?.id || null
+
+        if (subscriptionId) {
           // Prolonger l'abonnement du sponsor
           const { data: sponsor } = await supabase
             .from('sponsors')
             .select('*')
-            .eq('stripe_subscription_id', invoice.subscription as string)
+            .eq('stripe_subscription_id', subscriptionId)
             .single()
 
           if (sponsor) {
@@ -120,7 +127,7 @@ export async function POST(request: Request) {
                 status: sponsor.website_url ? 'active' : 'pending',
                 updated_at: new Date().toISOString(),
               })
-              .eq('stripe_subscription_id', invoice.subscription as string)
+              .eq('stripe_subscription_id', subscriptionId)
           }
         }
 
