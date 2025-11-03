@@ -55,7 +55,7 @@ export const metadata: Metadata = {
     description: siteDescription,
     images: [
       {
-        url: `${siteUrl}/opengraph-image`,
+        url: `${siteUrl}/thumbnail.png`,
         width: 1200,
         height: 630,
         alt: `${siteName} - GitHub Contributions Leaderboard`,
@@ -66,7 +66,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: `${siteName} - GitHub Contributions Leaderboard`,
     description: siteDescription,
-    images: [`${siteUrl}/opengraph-image`],
+    images: [`${siteUrl}/thumbnail.png`],
     creator: '@trustcode',
   },
   alternates: {
