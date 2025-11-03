@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Theme from './theme-provider'
 import AppProvider from './app-provider'
+import Footer from '@/components/Footer'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -23,10 +24,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable}`} data-theme="gh" suppressHydrationWarning>
-      <body className="font-inter antialiased bg-gh-primary text-gh-white">
+      <body className="font-inter antialiased bg-gh-primary text-gh-white flex flex-col min-h-screen">
         <Theme>
           <AppProvider>
-            {children}
+            <div className="flex-1">
+              {children}
+            </div>
+            <Footer />
           </AppProvider>
         </Theme>
       </body>
