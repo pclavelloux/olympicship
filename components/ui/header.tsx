@@ -42,17 +42,17 @@ export default function Header({
               </svg>
             </button>
             {/* Logo */}
-            <Link href="/" className="hover:opacity-80 transition-opacity">
+            <Link href="/" className="hover:opacity-80 transition-opacity ">
               <img
                 src="/os.png"
                 alt="Logo"
-                width={32}
-                height={32}
+                width={65}
+                height={65}
                 className="object-contain"
               />
             </Link>
             {/*  Divider */}
-            <hr className="w-px h-6 bg-gh-primary border-none" />
+            <hr className="w-px h-8 bg-gh-primary border-none" />
           </div>
 
           {/* Header: Right side */}

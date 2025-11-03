@@ -88,15 +88,15 @@ export default function ContributionGrid({ contributionsData, username, compact 
     return { weeks: weeksData, monthLabels: monthsArray }
   }, [contributionsData])
 
-  // Pink gradient colors for contributions
+  // Pink gradient colors for contributions (darker and more muted, similar to GitHub green style)
   const getLevelClasses = (level: number) => {
-    // Pink gradient from light to vibrant (#FF66C4)
+    // Muted pink gradient from dark to light (similar intensity to GitHub green)
     const classes = {
-      0: 'bg-[#161b22]', // No contributions - dark background
-      1: 'bg-[#FFE6F7]', // Level 1 - very light pink
-      2: 'bg-[#FFB3E6]', // Level 2 - light pink
-      3: 'bg-[#FF80D9]', // Level 3 - medium pink
-      4: 'bg-gh-pink', // Level 4 - vibrant pink (most commits)
+      0: 'bg-[#21262d]', // No contributions - dark gray
+      1: 'bg-[#5c2d4e]', // Level 1 - very dark muted pink
+      2: 'bg-[#7d3a6b]', // Level 2 - dark muted pink
+      3: 'bg-[#a85491]', // Level 3 - medium muted pink
+      4: 'bg-[#c66fb4]', // Level 4 - light muted pink (most commits)
     }
     return classes[level as keyof typeof classes] || classes[0]
   }
