@@ -39,7 +39,22 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    if (session?.provider_token && session?.user) {
+    if (session?.user) {
+      // Log de diagnostic pour vérifier si le provider_token est présent
+      console.log('Session data:', {
+        hasProviderToken: !!session.provider_token,
+        providerTokenLength: session.provider_token?.length || 0,
+        userId: session.user.id,
+        username: session.user.user_metadata.user_name || session.user.user_metadata.preferred_username
+      })
+      
+      if (!session.provider_token) {
+        console.error('❌ PROBLEM: provider_token is missing from session!')
+        console.error('This usually means:')
+        console.error('1. GitHub provider in Supabase is not configured to return the provider token')
+        console.error('2. Check Dashboard > Authentication > Providers > GitHub > Enable Provider Refresh Token')
+      }
+      
       try {
         // Vérifier si c'est une première connexion (profil existait déjà?)
         const { data: existingProfile } = await supabase
@@ -55,7 +70,7 @@ export async function GET(request: NextRequest) {
         const githubUsername = session.user.user_metadata.user_name || 
                                session.user.user_metadata.preferred_username
         
-        if (githubUsername) {
+        if (githubUsername && session.provider_token) {
           const contributions = await fetchGitHubContributions(
             githubUsername,
             session.provider_token
@@ -66,12 +81,13 @@ export async function GET(request: NextRequest) {
             0
           )
 
-          // Mettre à jour le profil avec les contributions
+          // Mettre à jour le profil avec les contributions et le token
           const { error: updateError } = await supabase
             .from('profiles')
             .update({
               contributions_data: contributions,
               total_contributions: totalContributions,
+              github_token: session.provider_token,
               last_updated: new Date().toISOString(),
             })
             .eq('id', session.user.id)
@@ -85,6 +101,8 @@ export async function GET(request: NextRequest) {
             const redirectUrl = new URL('/?success=true&firstTime=true', requestUrl.origin)
             return NextResponse.redirect(redirectUrl)
           }
+        } else if (!session.provider_token) {
+          console.warn('⚠️ Cannot fetch contributions: provider_token is missing')
         }
       } catch (error) {
         console.error('Error fetching contributions:', error)
