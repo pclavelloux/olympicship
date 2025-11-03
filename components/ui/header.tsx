@@ -25,8 +25,7 @@ export default function Header({
         <div className={`flex items-center justify-between h-16 ${variant === 'v2' || variant === 'v3' ? '' : 'lg:border-b border-gray-200 dark:border-gray-700/60'}`}>
 
           {/* Header: Left side */}
-          <div className="flex">
-
+          <div className="flex items-center space-x-3">
             {/* Hamburger button */}
             <button
               className="text-gray-500 hover:text-gray-600 dark:hover:text-gray-400 lg:hidden"
@@ -41,11 +40,6 @@ export default function Header({
                 <rect x="4" y="17" width="16" height="2" />
               </svg>
             </button>
-
-          </div>
-
-          {/* Header: Right side */}
-          <div className="flex items-center space-x-3">
             {/* Logo */}
             <img
               src="/os.png"
@@ -56,8 +50,11 @@ export default function Header({
             />
             {/*  Divider */}
             <hr className="w-px h-6 bg-gh-primary border-none" />
-            <DropdownProfile align="right" currentUser={currentUser} onSignOut={onSignOut} />
+          </div>
 
+          {/* Header: Right side */}
+          <div className="flex items-center">
+            <DropdownProfile align="right" currentUser={currentUser} onSignOut={onSignOut} />
           </div>
 
         </div>

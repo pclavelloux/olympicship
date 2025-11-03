@@ -8,6 +8,7 @@ import SponsorPanel from '@/components/SponsorPanel'
 import SponsorBanner from '@/components/SponsorBanner'
 import { User as UserIcon } from 'lucide-react'
 import GitHubConnectButton from '@/components/GitHubConnectButton'
+import confetti from 'canvas-confetti'
 
 export default function Home() {
   const [users, setUsers] = useState<User[]>([])
@@ -20,9 +21,50 @@ export default function Home() {
   useEffect(() => {
     // Check for success/error messages in URL
     const params = new URLSearchParams(window.location.search)
+    const isFirstTime = params.get('firstTime') === 'true'
+    
     if (params.get('success')) {
       // Remove query params from URL
       window.history.replaceState({}, '', '/')
+      
+      // Si c'est une première connexion, afficher les confettis et le toast
+      if (isFirstTime) {
+        // Lancer les confettis
+        const duration = 3000 // 3 secondes
+        const animationEnd = Date.now() + duration
+        const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 }
+
+        function randomInRange(min: number, max: number) {
+          return Math.random() * (max - min) + min
+        }
+
+        const interval: NodeJS.Timeout = setInterval(function() {
+          const timeLeft = animationEnd - Date.now()
+
+          if (timeLeft <= 0) {
+            return clearInterval(interval)
+          }
+
+          const particleCount = 50 * (timeLeft / duration)
+          confetti({
+            ...defaults,
+            particleCount,
+            origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+          })
+          confetti({
+            ...defaults,
+            particleCount,
+            origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+          })
+        }, 250)
+
+        // Afficher le toast pendant 5 secondes
+        setSuccessMessage('Your stats have been added')
+        setTimeout(() => {
+          setSuccessMessage('')
+        }, 5000)
+      }
+      
       // Wait a bit for the profile to be created, then fetch current user
       // Retry multiple times in case the profile takes time to be created
       const retryFetchUser = async (attempts = 5) => {
@@ -110,7 +152,7 @@ export default function Home() {
 
       {/* Messages */}
       {successMessage && (
-        <div className="toast toast-top toast-end z-50">
+        <div className="toast toast-top toast-center z-50">
           <div className="alert alert-success">
             <span>{successMessage}</span>
           </div>
