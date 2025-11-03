@@ -7,6 +7,7 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get('code')
   const response = NextResponse.redirect(new URL(code ? '/?success=true' : '/?error=no_code', requestUrl.origin))
 
+  console.log('TEST', code)
   if (code) {
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -51,11 +52,17 @@ export async function GET(request: NextRequest) {
         const isFirstTime = !existingProfile || 
           (existingProfile && new Date(existingProfile.created_at).getTime() > Date.now() - 60000) // Créé il y a moins d'1 minute
 
-        // Récupérer les contributions GitHub
+        // Récupérer les informations GitHub depuis les metadata
         const githubUsername = session.user.user_metadata.user_name || 
                                session.user.user_metadata.preferred_username
+        const githubId = session.user.user_metadata.provider_id || 
+                         session.user.user_metadata.sub ||
+                         session.user.id
+        const avatarUrl = session.user.user_metadata.avatar_url || 
+                         session.user.user_metadata.picture
         
         if (githubUsername) {
+          // Récupérer les contributions GitHub
           const contributions = await fetchGitHubContributions(
             githubUsername,
             session.provider_token
@@ -66,29 +73,59 @@ export async function GET(request: NextRequest) {
             0
           )
 
-          // Mettre à jour le profil avec les contributions
-          const { error: updateError } = await supabase
+          // Créer ou mettre à jour le profil avec toutes les informations
+          const { error: upsertError } = await supabase
             .from('profiles')
-            .update({
+            .upsert({
+              id: session.user.id,
+              github_username: githubUsername,
+              github_id: githubId,
+              github_token: session.provider_token,
+              avatar_url: avatarUrl,
               contributions_data: contributions,
               total_contributions: totalContributions,
               last_updated: new Date().toISOString(),
+            }, {
+              onConflict: 'id'
             })
-            .eq('id', session.user.id)
 
-          if (updateError) {
-            console.error('Error updating contributions:', updateError)
+          if (upsertError) {
+            console.error('Error upserting profile:', upsertError)
+            // Si l'upsert échoue, essayer un update
+            const { error: updateError } = await supabase
+              .from('profiles')
+              .update({
+                github_username: githubUsername,
+                github_id: githubId,
+                github_token: session.provider_token,
+                avatar_url: avatarUrl,
+                contributions_data: contributions,
+                total_contributions: totalContributions,
+                last_updated: new Date().toISOString(),
+              })
+              .eq('id', session.user.id)
+
+            if (updateError) {
+              console.error('Error updating profile:', updateError)
+            }
           }
 
-          // Si c'est une première connexion, ajouter un paramètre dans l'URL
+          // Rediriger avec success=true pour forcer le rafraîchissement
+          // Si c'est une première connexion, ajouter aussi firstTime=true
+          const redirectParams = new URLSearchParams()
+          redirectParams.set('success', 'true')
           if (isFirstTime) {
-            const redirectUrl = new URL('/?success=true&firstTime=true', requestUrl.origin)
-            return NextResponse.redirect(redirectUrl)
+            redirectParams.set('firstTime', 'true')
           }
+          const redirectUrl = new URL(`/?${redirectParams.toString()}`, requestUrl.origin)
+          return NextResponse.redirect(redirectUrl)
         }
       } catch (error) {
         console.error('Error fetching contributions:', error)
         // Continue même si la récupération des contributions échoue
+        // Rediriger quand même avec success=true pour permettre le rafraîchissement
+        const redirectUrl = new URL('/?success=true', requestUrl.origin)
+        return NextResponse.redirect(redirectUrl)
       }
     }
   }
