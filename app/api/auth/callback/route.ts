@@ -77,8 +77,10 @@ export async function GET(request: NextRequest) {
     console.log('Session data:', {
       hasProviderToken: !!session.provider_token,
       hasProviderRefreshToken: !!session.provider_refresh_token,
-      userMetadata: session.user?.user_metadata,
       accessToken: session.access_token ? 'present' : 'missing',
+      userMetadata: session.user?.user_metadata,
+      // Logger les clés disponibles pour debug
+      sessionKeys: Object.keys(session),
     })
 
     // Essayer de récupérer les contributions si on a un provider_token
@@ -86,9 +88,15 @@ export async function GET(request: NextRequest) {
     let totalContributions = 0
     let contributionsError: Error | null = null
 
-    // Le provider_token peut être dans session.provider_token ou dans session.access_token
-    // selon la version de Supabase
-    const githubToken = session.provider_token || session.provider_refresh_token
+    // Le provider_token peut être dans session.provider_token
+    // Note: Supabase stocke le token OAuth dans provider_token seulement si configuré correctement
+    const githubToken = session.provider_token
+    
+    // Si pas de provider_token, vérifier si on peut utiliser access_token
+    // (généralement non, mais essayons pour debug)
+    if (!githubToken && session.access_token) {
+      console.log('No provider_token found, trying with access_token (may not work)...')
+    }
     
     if (githubToken) {
       try {
@@ -110,30 +118,12 @@ export async function GET(request: NextRequest) {
         totalContributions = 0
       }
     } else {
-      console.warn('No provider_token in session. Trying to get token from GitHub...')
-      
-      // Essayer de récupérer un token directement depuis GitHub
-      // en utilisant le code d'autorisation si disponible
-      try {
-        // Si on n'a pas le token, on essaie quand même de récupérer les contributions publiques
-        // sans token (mais ça ne marchera probablement pas pour GraphQL)
-        console.log('Attempting to fetch public contributions without token...')
-        // Note: GraphQL nécessite un token, donc ça va échouer
-        // Mais on va essayer pour voir l'erreur exacte
-        contributions = await fetchGitHubContributions(
-          githubUsername,
-          '' // Pas de token
-        )
-        totalContributions = Object.values(contributions).reduce(
-          (sum, count) => sum + count,
-          0
-        )
-      } catch (error) {
-        contributionsError = error instanceof Error ? error : new Error(String(error))
-        console.error('Error fetching contributions without token:', error)
-        contributions = {}
-        totalContributions = 0
-      }
+      console.warn('No provider_token in session. Cannot fetch contributions without token.')
+      console.warn('The OAuth token may not be configured to be returned in Supabase.')
+      console.warn('Contributions will be set to 0. User can add a Personal Access Token later.')
+      contributionsError = new Error('No provider_token available. Please add a Personal Access Token in your profile.')
+      contributions = {}
+      totalContributions = 0
     }
 
     // Créer ou mettre à jour le profil avec toutes les informations
