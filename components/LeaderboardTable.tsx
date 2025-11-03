@@ -12,7 +12,7 @@ interface LeaderboardTableProps {
 
 export default function LeaderboardTable({ users, currentUserGithubUsername }: LeaderboardTableProps) {
   return (
-    <div className="overflow-x-auto p-4 lg:p-6">
+    <div className="overflow-x-auto">
       <div className="border border-gray-600/30 rounded-gh overflow-hidden bg-gh-tertiary">
         <table className="w-full border-collapse">
           <thead className="hidden lg:table-header-group">

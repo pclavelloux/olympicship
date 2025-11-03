@@ -21,7 +21,6 @@ export default function Home() {
     // Check for success/error messages in URL
     const params = new URLSearchParams(window.location.search)
     if (params.get('success')) {
-      setSuccessMessage('Successfully connected to GitHub!')
       // Remove query params from URL
       window.history.replaceState({}, '', '/')
       // Wait a bit for the profile to be created, then fetch current user
@@ -172,7 +171,7 @@ export default function Home() {
         {/* Grid Layout: responsive - 1 column on mobile, 6 columns (1-4-1) on desktop */}
         <div className="grid grid-cols-6 gap-4 gap-8 py-8">
           {/* Left Sponsor Panel - Desktop only - 1 column */}
-          <div className="col-span-1 min-w-0">
+          <div className="col-span-1 min-w-0 bg-gh-tertiary">
             <SponsorPanel sponsors={leftSponsors} />
           </div>
 
@@ -222,7 +221,7 @@ export default function Home() {
           </div>
 
           {/* Right Sponsor Panel - Desktop only - 1 column */}
-          <div className=" col-span-1">
+          <div className=" col-span-1 bg-gh-tertiary">
             <SponsorPanel sponsors={rightSponsors} />
           </div>
         </div>

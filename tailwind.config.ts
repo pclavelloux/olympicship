@@ -10,7 +10,7 @@ const config: Config = {
     extend: {
       colors: {
         'gh-primary': '#020408',
-        'gh-secondary': '#0D1116',
+        'gh-secondary': '#0C1116',
         'gh-tertiary': '#222825',
         'gh-white': '#F0F6FC',
         'gh-white2': '#dedede',
@@ -32,7 +32,7 @@ const config: Config = {
           "accent": "#222825",            // github-tertiary
           "neutral": "#020408",           // github-primary
           "base-100": "#F0F6FC",          // github-white
-          "base-200": "#0D1116",          // github-secondary pour les backgrounds alternatifs
+          "base-200": "#0C1116",          // github-secondary pour les backgrounds alternatifs
           "base-300": "#222825",          // github-tertiary pour les borders
           "info": "#5991F1",              // github-primary-blue
           "success": "#238636",           // Vert GitHub pour succès
