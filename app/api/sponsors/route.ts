@@ -17,7 +17,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-10-29.clover',
 })
 
-// GET - Récupérer le sponsor actif
+// GET - Récupérer les sponsors actifs (jusqu'à 10)
 export async function GET() {
   try {
     const { data: sponsors, error } = await supabase
@@ -26,17 +26,17 @@ export async function GET() {
       .eq('status', 'active')
       .gte('expires_at', new Date().toISOString())
       .order('created_at', { ascending: true })
-      .limit(1)
+      .limit(10)
 
     if (error) {
-      console.error('Error fetching sponsor:', error)
+      console.error('Error fetching sponsors:', error)
       return NextResponse.json(
-        { error: 'Failed to fetch sponsor' },
+        { error: 'Failed to fetch sponsors' },
         { status: 500 }
       )
     }
 
-    return NextResponse.json({ sponsor: sponsors?.[0] || null })
+    return NextResponse.json({ sponsors: sponsors || [] })
   } catch (error) {
     console.error('Error in GET /api/sponsors:', error)
     return NextResponse.json(

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 
 export async function DELETE(
   request: NextRequest,
@@ -9,6 +10,7 @@ export async function DELETE(
     const { githubId } = await params
     const response = NextResponse.next()
     
+    // Client pour vérifier l'authentification (avec ANON_KEY)
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -40,10 +42,22 @@ export async function DELETE(
       )
     }
 
+    // Client avec service role pour la suppression (contourne RLS)
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    )
+
     // Vérifier que c'est bien le profil de l'utilisateur
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select('id')
+      .select('id, github_id')
       .eq('github_id', githubId)
       .eq('id', user.id)
       .single()
@@ -55,8 +69,8 @@ export async function DELETE(
       )
     }
 
-    // Supprimer le profil (auth.users sera supprimé automatiquement par CASCADE)
-    const { error: deleteError } = await supabase
+    // Supprimer le profil avec le client admin (contourne RLS)
+    const { error: deleteError } = await supabaseAdmin
       .from('profiles')
       .delete()
       .eq('id', user.id)
@@ -67,6 +81,14 @@ export async function DELETE(
         { error: deleteError.message || 'Failed to delete profile' },
         { status: 500 }
       )
+    }
+
+    // Supprimer l'utilisateur auth (cela supprimera aussi le profil via CASCADE si pas déjà fait)
+    try {
+      await supabaseAdmin.auth.admin.deleteUser(user.id)
+    } catch (userDeleteError) {
+      console.error('Error deleting auth user:', userDeleteError)
+      // On continue même si ça échoue, le profil est déjà supprimé
     }
 
     // Sign out

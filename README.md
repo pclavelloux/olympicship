@@ -83,6 +83,7 @@ Ouvrez [http://localhost:3000](http://localhost:3000) 🎉
 | [SETUP.md](SETUP.md) | Guide de configuration détaillé |
 | [API.md](API.md) | Documentation de l'API |
 | [DEPLOYMENT.md](DEPLOYMENT.md) | Guide de déploiement (Vercel, VPS) |
+| [CRON_SETUP.md](CRON_SETUP.md) | Configuration de l'automatisation (rafraîchissement toutes les 12h) |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Comment contribuer |
 | [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md) | Vue d'ensemble du projet |
 

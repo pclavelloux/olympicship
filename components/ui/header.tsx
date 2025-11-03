@@ -4,10 +4,6 @@ import { useState } from 'react'
 import { useAppProvider } from '@/app/app-provider'
 import { User } from '@/types/user'
 
-import SearchModal from '@/components/search-modal'
-import Notifications from '@/components/dropdown-notifications'
-import DropdownHelp from '@/components/dropdown-help'
-import ThemeToggle from '@/components/theme-toggle'
 import DropdownProfile from '@/components/dropdown-profile'
 
 export default function Header({
@@ -29,8 +25,7 @@ export default function Header({
         <div className={`flex items-center justify-between h-16 ${variant === 'v2' || variant === 'v3' ? '' : 'lg:border-b border-gray-200 dark:border-gray-700/60'}`}>
 
           {/* Header: Left side */}
-          <div className="flex">
-
+          <div className="flex items-center space-x-3">
             {/* Hamburger button */}
             <button
               className="text-gray-500 hover:text-gray-600 dark:hover:text-gray-400 lg:hidden"
@@ -45,15 +40,21 @@ export default function Header({
                 <rect x="4" y="17" width="16" height="2" />
               </svg>
             </button>
-
+            {/* Logo */}
+            <img
+              src="/os.png"
+              alt="Logo"
+              width={32}
+              height={32}
+              className="object-contain"
+            />
+            {/*  Divider */}
+            <hr className="w-px h-6 bg-gh-primary border-none" />
           </div>
 
           {/* Header: Right side */}
-          <div className="flex items-center space-x-3">
-            {/*  Divider */}
-            <hr className="w-px h-6 bg-gh-primary border-none" />
+          <div className="flex items-center">
             <DropdownProfile align="right" currentUser={currentUser} onSignOut={onSignOut} />
-
           </div>
 
         </div>

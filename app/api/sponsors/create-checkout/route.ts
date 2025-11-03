@@ -33,21 +33,30 @@ export async function POST() {
       line_items: [
         {
           price_data: {
-            currency: 'eur',
+            currency: 'usd',
             product_data: {
               name: 'TrustCode Sponsor',
               description: 'Monthly sponsorship - Get your product in front of top developers',
             },
-            unit_amount: 9900, // 99€ par mois
+            unit_amount: 69900, // $699 HT per month
             recurring: {
               interval: 'month',
             },
+            tax_behavior: 'exclusive', // Le prix est HT, les taxes seront ajoutées
           },
           quantity: 1,
         },
       ],
-      // Stripe demandera l'email dans le checkout
+      // Collecte obligatoire de l'adresse de facturation
       billing_address_collection: 'required',
+      // Calcul automatique des taxes en fonction de l'adresse
+      automatic_tax: {
+        enabled: true,
+      },
+      // Collecte obligatoire de la TVA/NIF
+      tax_id_collection: {
+        enabled: true,
+      },
       success_url: `${baseUrl}/sponsor/setup?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/?canceled=true`,
     })

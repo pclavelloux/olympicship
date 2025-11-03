@@ -12,6 +12,10 @@ interface Sponsor {
   status: string
 }
 
+interface SponsorPanelProps {
+  side?: 'left' | 'right'
+}
+
 // Helper function to generate simple icon based on sponsor name
 const generateIcon = (name: string) => {
   const initials = name
@@ -28,24 +32,24 @@ const generateIcon = (name: string) => {
   )
 }
 
-export default function SponsorPanel() {
-  const [sponsor, setSponsor] = useState<Sponsor | null>(null)
+export default function SponsorPanel({ side = 'left' }: SponsorPanelProps) {
+  const [sponsors, setSponsors] = useState<Sponsor[]>([])
   const [loading, setLoading] = useState(true)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
 
   useEffect(() => {
-    fetchSponsor()
+    fetchSponsors()
   }, [])
 
-  const fetchSponsor = async () => {
+  const fetchSponsors = async () => {
     try {
       const response = await fetch('/api/sponsors')
       if (response.ok) {
         const data = await response.json()
-        setSponsor(data.sponsor)
+        setSponsors(data.sponsors || [])
       }
     } catch (error) {
-      console.error('Error fetching sponsor:', error)
+      console.error('Error fetching sponsors:', error)
     } finally {
       setLoading(false)
     }
@@ -82,6 +86,14 @@ export default function SponsorPanel() {
     }
   }
 
+  // Get the 5 sponsors for this side (left: 0-4, right: 5-9)
+  const startIndex = side === 'left' ? 0 : 5
+  const endIndex = side === 'left' ? 5 : 10
+  const sideSponsors = sponsors.slice(startIndex, endIndex)
+  
+  // Show one empty slot only if we have less than 5 sponsors
+  const showEmptySlot = sideSponsors.length < 5
+
   if (loading) {
     return (
       <div className="space-y-4 sticky top-4 min-w-0">
@@ -98,9 +110,10 @@ export default function SponsorPanel() {
 
   return (
     <div className="space-y-4 sticky top-4 min-w-0">
-      {sponsor ? (
-        // Active sponsor
+      {/* Display all sponsors for this side */}
+      {sideSponsors.map((sponsor) => (
         <a
+          key={sponsor.id}
           href={sponsor.website_url}
           target="_blank"
           rel="noopener noreferrer"
@@ -128,8 +141,10 @@ export default function SponsorPanel() {
             </div>
           </div>
         </a>
-      ) : (
-        // Empty sponsor slot - call to action
+      ))}
+      
+      {/* Show one empty slot if there's room */}
+      {showEmptySlot && (
         <div
           onClick={handleSponsorClick}
           className="card bg-base-100 border-2 border-dashed border-base-300 hover:border-primary transition-all duration-300 cursor-pointer group shadow-lg rounded-gh"
@@ -148,7 +163,7 @@ export default function SponsorPanel() {
                 <p className="text-xs text-base-content/60">
                   {checkoutLoading
                     ? 'Redirecting to checkout...'
-                    : '€99/month - Get your product in front of top developers'}
+                    : ''}
                 </p>
               </div>
             </div>

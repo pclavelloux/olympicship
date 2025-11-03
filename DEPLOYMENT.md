@@ -49,6 +49,10 @@ vercel env add GITHUB_CLIENT_ID
 vercel env add GITHUB_CLIENT_SECRET
 vercel env add NEXTAUTH_URL
 vercel env add NEXTAUTH_SECRET
+
+# Pour l'automatisation du rafraîchissement des contributions (optionnel)
+vercel env add CRON_SECRET
+vercel env add SUPABASE_SERVICE_ROLE_KEY
 ```
 
 #### Via Dashboard:
@@ -61,6 +65,7 @@ vercel env add NEXTAUTH_SECRET
 **Important:** 
 - `NEXTAUTH_URL` doit être votre domaine de production (ex: `https://trustcode.vercel.app`)
 - Créez une nouvelle GitHub OAuth App avec l'URL de production
+- Pour activer l'automatisation du rafraîchissement des contributions, consultez [CRON_SETUP.md](CRON_SETUP.md)
 
 ### 5. Déploiement en production
 

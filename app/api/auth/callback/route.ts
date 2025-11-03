@@ -41,6 +41,16 @@ export async function GET(request: NextRequest) {
 
     if (session?.provider_token && session?.user) {
       try {
+        // Vérifier si c'est une première connexion (profil existait déjà?)
+        const { data: existingProfile } = await supabase
+          .from('profiles')
+          .select('id, created_at')
+          .eq('id', session.user.id)
+          .single()
+
+        const isFirstTime = !existingProfile || 
+          (existingProfile && new Date(existingProfile.created_at).getTime() > Date.now() - 60000) // Créé il y a moins d'1 minute
+
         // Récupérer les contributions GitHub
         const githubUsername = session.user.user_metadata.user_name || 
                                session.user.user_metadata.preferred_username
@@ -68,6 +78,12 @@ export async function GET(request: NextRequest) {
 
           if (updateError) {
             console.error('Error updating contributions:', updateError)
+          }
+
+          // Si c'est une première connexion, ajouter un paramètre dans l'URL
+          if (isFirstTime) {
+            const redirectUrl = new URL('/?success=true&firstTime=true', requestUrl.origin)
+            return NextResponse.redirect(redirectUrl)
           }
         }
       } catch (error) {
