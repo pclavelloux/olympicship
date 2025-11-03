@@ -34,9 +34,8 @@ export default function GitHubConnectButton({ isAuthenticated, onSignOut, label 
         provider: 'github',
         options: {
           redirectTo: `${baseUrl}/api/auth/callback`,
-          // Le scope 'repo' est nécessaire pour accéder aux contributions via GraphQL
-          // Cela donne accès aux repositories publics et privés
-          scopes: 'read:user repo',
+          // Le scope 'read:user' suffit pour accéder aux contributions publiques via GraphQL
+          scopes: 'read:user',
           skipBrowserRedirect: false,
           queryParams: {
             // Demandons explicitement le provider_token
