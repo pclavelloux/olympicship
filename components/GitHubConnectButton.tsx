@@ -36,6 +36,11 @@ export default function GitHubConnectButton({ isAuthenticated, onSignOut, label 
           redirectTo: `${baseUrl}/api/auth/callback`,
           scopes: 'read:user',
           skipBrowserRedirect: false,
+          queryParams: {
+            // Demandons explicitement le provider_token
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       })
       
