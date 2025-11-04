@@ -47,7 +47,7 @@ export default function Footer() {
             
             {/* Analytics Link */}
             <Link
-              href="https://datafa.st/share/69090f8c0de14f3c74d0c61b"
+              href="https://datafa.st/share/69090f8c0de14f3c74d0c61b?via=p"
               target="_blank"
               rel="noopener noreferrer"
               className="text-base-content/70 hover:text-base-content transition-colors text-sm"

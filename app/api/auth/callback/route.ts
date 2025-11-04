@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { fetchGitHubContributions } from "@/lib/github";
+import { upsertDailyContributions } from "@/lib/contributions";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -146,6 +147,18 @@ export async function GET(request: NextRequest) {
             );
           } else {
             console.log("✅ Update successful, total contributions:", totalContributions);
+          }
+
+          // Insérer/mettre à jour les contributions quotidiennes dans daily_contributions
+          try {
+            await upsertDailyContributions(
+              session.user.id,
+              contributions,
+              supabaseAdmin
+            )
+          } catch (error) {
+            console.error("❌ Error upserting daily contributions:", error);
+            // Ne pas bloquer le processus si l'upsert échoue
           }
 
           // Si c'est une première connexion, ajouter un paramètre dans l'URL

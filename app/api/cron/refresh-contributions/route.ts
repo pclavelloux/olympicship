@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { fetchGitHubContributions } from '@/lib/github'
+import { upsertDailyContributions } from '@/lib/contributions'
 
 /**
  * Route cron pour rafraîchir automatiquement les contributions GitHub
@@ -106,6 +107,21 @@ export async function GET(request: NextRequest) {
 
         if (updateError) {
           throw updateError
+        }
+
+        // Insérer/mettre à jour les contributions quotidiennes dans daily_contributions
+        try {
+          await upsertDailyContributions(
+            profile.id,
+            contributions,
+            supabase
+          )
+        } catch (dailyContribError) {
+          console.error(
+            `⚠️ Failed to upsert daily contributions for ${profile.github_username}:`,
+            dailyContribError
+          )
+          // Ne pas bloquer le processus si l'upsert échoue
         }
 
         updated++

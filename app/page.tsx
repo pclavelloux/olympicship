@@ -3,12 +3,12 @@
 import { useEffect, useState, useCallback } from 'react'
 import { User } from '@/types/user'
 import LeaderboardTable from '@/components/LeaderboardTable'
+import WeeklyStats from '@/components/WeeklyStats'
 import Header from '@/components/ui/header'
 import SponsorPanel from '@/components/SponsorPanel'
 import SponsorBanner from '@/components/SponsorBanner'
 import SponsorBannerMobile from '@/components/SponsorBannerMobile'
 import { User as UserIcon } from 'lucide-react'
-import GitHubConnectButton from '@/components/GitHubConnectButton'
 import confetti from 'canvas-confetti'
 import { createClient } from '@/lib/supabase'
 
@@ -18,6 +18,7 @@ export default function Home() {
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [successMessage, setSuccessMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
+  const [viewMode, setViewMode] = useState<'alltime' | 'weekly'>('alltime')
 
   const fetchCurrentUser = useCallback(async () => {
     try {
@@ -34,9 +35,12 @@ export default function Home() {
     }
   }, [])
 
-  const fetchUsers = useCallback(async () => {
+  const fetchUsers = useCallback(async (isInitialLoad = false) => {
     try {
-      setIsLoading(true)
+      // Only set loading to true on initial load to avoid flicker
+      if (isInitialLoad) {
+        setIsLoading(true)
+      }
       const response = await fetch('/api/users', {
         // Add cache headers to reduce server load
         cache: 'default',
@@ -119,7 +123,7 @@ export default function Home() {
             const profile = await fetchCurrentUser()
             if (profile) {
               console.log('✅ User profile fetched successfully:', profile.github_username)
-              await fetchUsers() // Refresh users list
+              await fetchUsers(false) // Refresh users list without showing loading
               return // Success, stop retrying
             } else {
               console.log(`⏳ Attempt ${i + 1}/${attempts}: Profile not found yet, retrying...`)
@@ -130,17 +134,17 @@ export default function Home() {
         }
         // If we get here, still refresh users list
         console.warn('⚠️ Failed to fetch user profile after', attempts, 'attempts')
-        await fetchUsers()
+        await fetchUsers(false) // Refresh without showing loading
       }
       retryFetchUser()
     } else if (hasError) {
       setErrorMessage(params.get('error') || 'An error occurred')
       window.history.replaceState({}, '', '/')
-      fetchUsers()
+      fetchUsers(false) // Refresh without showing loading
       fetchCurrentUser()
     } else {
       // Normal load - fetch users and current user
-      fetchUsers()
+      fetchUsers(true) // Pass true for initial load
       fetchCurrentUser()
     }
 
@@ -160,7 +164,7 @@ export default function Home() {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
         // User signed in, token refreshed, or user updated - fetch user profile
         await fetchCurrentUser()
-        await fetchUsers()
+        await fetchUsers(false) // Refresh without showing loading
       } else if (event === 'SIGNED_OUT') {
         // User signed out
         setCurrentUser(null)
@@ -206,14 +210,16 @@ export default function Home() {
       <div className="container mx-auto px-4 py-8 pb-24 md:pb-8 max-w-[1920px]">
 
         {/* Grid Layout: responsive - 1 column on mobile, 6 columns (1-4-1) on desktop */}
-        <div className="grid grid-cols-6 gap-8 py-8">
-          {/* Left Sponsor Panel - Desktop only - 1 column */}
-          <div className="hidden md:block col-span-1 min-w-0 bg-gh-tertiary">
-            <SponsorPanel side="left" />
-          </div>
+        <div className={`grid grid-cols-6 gap-8 py-8 ${viewMode === 'weekly' ? 'md:grid-cols-1' : ''}`}>
+          {/* Left Sponsor Panel - Desktop only - 1 column - Only in All time view */}
+          {viewMode === 'alltime' && (
+            <div className="hidden md:block col-span-1 min-w-0 bg-gh-tertiary">
+              <SponsorPanel side="left" />
+            </div>
+          )}
 
-          {/* Main Content - Full width on mobile, 4 columns on desktop */}
-          <div className="col-span-6 md:col-span-4">
+          {/* Main Content - Full width on mobile, 4 columns on desktop (All time) or full width (Weekly) */}
+          <div className={viewMode === 'weekly' ? 'col-span-6' : 'col-span-6 md:col-span-4'}>
             {/* Hero */}
             <div className="text-center md:mb-8 mb-4 ">
               <h1 className="text-4xl lg:text-6xl font-extrabold mb-4 tracking-tight">
@@ -224,52 +230,80 @@ export default function Home() {
               <p className="text-base-content/70 text-base lg:text-lg mb-6">
                 Top developers ranked by total contributions
               </p>
+            </div>
 
-              <div className="flex justify-center">
-                <GitHubConnectButton 
-                  label="Add my GitHub" 
-                  isAuthenticated={!!currentUser}
-                  onSignOut={handleSignOut}
-                />
+            {/* Toggle View Mode */}
+            <div className="flex justify-center mb-6 ">
+              <div className="join bg-gray-500 rounded-md">
+                <button
+                  className={`join-item btn ${
+                    viewMode === 'alltime'
+                      ? 'bg-gh-pink text-gh-white  border-2 '
+                      : 'bg-base-200 text-base-content hover:bg-base-300 bg-gray-500 hover:underline'
+                  } border-base-300 transition-colors`}
+                  onClick={() => setViewMode('alltime')}
+                >
+                  Streak
+                </button>
+                <button
+                  className={`join-item btn ${
+                    viewMode === 'weekly'
+                      ? 'bg-gh-pink text-gh-white border-2 '
+                      : 'bg-base-200 text-base-content hover:bg-base-300 hover:underline'
+                  } border-base-300 transition-colors`}
+                  onClick={() => setViewMode('weekly')}
+                >
+                  Weekly leaderboard
+                </button>
               </div>
             </div>
 
             {/* Content Card */}
             <div className="card bg-base-100 shadow-xl rounded-gh border border-base-200">
               <div className="card-body p-0">
-                {isLoading ? (
-                  <div className="flex items-center justify-center py-24">
-                    <span className="loading loading-spinner loading-lg text-primary"></span>
-                  </div>
-                ) : users.length === 0 ? (
-                  <div className="text-center py-24 px-4">
-                    <UserIcon className="mx-auto h-16 w-16 text-base-content/30 mb-4" />
-                    <h3 className="text-xl font-semibold text-base-content mb-2">
-                      No contributors yet
-                    </h3>
-                    <p className="text-base-content/60">
-                      Be the first to add your GitHub account!
-                    </p>
+                {viewMode === 'weekly' ? (
+                  <div className="p-6">
+                    <WeeklyStats />
                   </div>
                 ) : (
-                  <LeaderboardTable
-                    users={users}
-                    currentUserGithubUsername={currentUser?.github_username}
-                  />
+                  <>
+                    {isLoading ? (
+                      <div className="flex items-center justify-center py-24">
+                        <span className="loading loading-spinner loading-lg text-primary"></span>
+                      </div>
+                    ) : users.length === 0 ? (
+                      <div className="text-center py-24 px-4">
+                        <UserIcon className="mx-auto h-16 w-16 text-base-content/30 mb-4" />
+                        <h3 className="text-xl font-semibold text-base-content mb-2">
+                          No contributors yet
+                        </h3>
+                        <p className="text-base-content/60">
+                          Be the first to add your GitHub account!
+                        </p>
+                      </div>
+                    ) : (
+                      <LeaderboardTable
+                        users={users}
+                        currentUserGithubUsername={currentUser?.github_username}
+                      />
+                    )}
+                  </>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Right Sponsor Panel - Desktop only - 1 column */}
-          <div className="hidden md:block col-span-1 bg-gh-tertiary">
-            <SponsorPanel side="right" />
-          </div>
+          {/* Right Sponsor Panel - Desktop only - 1 column - Only in All time view */}
+          {viewMode === 'alltime' && (
+            <div className="hidden md:block col-span-1 bg-gh-tertiary">
+              <SponsorPanel side="right" />
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Mobile Sponsor Banner - Bottom of screen, scrolling */}
-      <SponsorBannerMobile /> 
+      {/* Mobile Sponsor Banner - Bottom of screen, scrolling (only in All time view) */}
+      {viewMode === 'alltime' && <SponsorBannerMobile />}
     </main>
   )
 }
