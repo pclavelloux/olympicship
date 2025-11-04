@@ -247,12 +247,13 @@ export default function WeeklyStats() {
                   <Calendar className="w-4 h-4 text-base-content/70" />
                 </div>
               </div>
-              <span className="text-base-content/70 font-medium">→</span>
+              <span className="text-base-content/50 text-xs md:hidden ml-2">(7 days)</span>
+              <span className="text-base-content/70 font-medium hidden md:inline">→</span>
               <input
                 type="date"
                 value={endDate}
                 readOnly
-                className="input input-bordered input-sm bg-gh-tertiary border-base-300 text-base-content/50 cursor-not-allowed px-3 py-2 min-w-[140px]"
+                className="input input-bordered input-sm bg-gh-tertiary border-base-300 text-base-content/50 cursor-not-allowed px-3 py-2 min-w-[140px] hidden md:block"
                 title="Date de fin calculée automatiquement (7 jours après la date de début)"
                 style={{
                   colorScheme: 'dark',
@@ -263,14 +264,14 @@ export default function WeeklyStats() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
         {/* Graphique - Prend 2 colonnes sur desktop */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-3 order-2 lg:order-1">
           <div className="card bg-base-200 shadow-xl">
             <div className="card-body p-6">
               <div className="w-full overflow-x-auto">
-                <div className="min-w-[800px]" style={{ height: '450px' }}>
-                  <svg width="100%" height="450" viewBox="0 0 800 450" preserveAspectRatio="xMidYMid meet" className="overflow-visible">
+                <div className="min-w-[1000px]" style={{ height: '500px' }}>
+                  <svg width="100%" height="500" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid meet" className="overflow-visible">
                   <defs>
                     <clipPath id="avatar-clip-circle">
                       <circle cx="12" cy="12" r="12" />
@@ -279,10 +280,10 @@ export default function WeeklyStats() {
                     
                     {/* Filigrane en arrière-plan */}
                     <text
-                      x="400"
-                      y="165"
+                      x="500"
+                      y="180"
                       textAnchor="middle"
-                      fontSize="70"
+                      fontSize="75"
                       fill="currentColor"
                       opacity="0.05"
                       fontWeight="bold"
@@ -295,13 +296,13 @@ export default function WeeklyStats() {
                     {/* Grille de fond */}
                     <g className="opacity-20" stroke="currentColor" strokeDasharray="3 3">
                       {[0, 1, 2, 3, 4, 5].map((i) => {
-                        const y = 80 + (i * (280 / 5))
+                        const y = 90 + (i * (310 / 5))
                         return (
                           <line
                             key={i}
-                            x1="40"
+                            x1="50"
                             y1={y}
-                            x2="770"
+                            x2="950"
                             y2={y}
                           />
                         )
@@ -310,16 +311,16 @@ export default function WeeklyStats() {
                     
                     {/* Dimensions du graphique */}
                     {(() => {
-                      const chartWidth = 800
-                      const chartHeight = 450
-                      const topMargin = 80 // Augmenté pour laisser de la place aux avatars
-                      const bottomMargin = 60
-                      const leftMargin = 40
-                      const rightMargin = 30
+                      const chartWidth = 1000
+                      const chartHeight = 500
+                      const topMargin = 90 // Augmenté pour laisser de la place aux avatars
+                      const bottomMargin = 70
+                      const leftMargin = 50
+                      const rightMargin = 50
                       const plotWidth = chartWidth - leftMargin - rightMargin
                       const plotHeight = chartHeight - topMargin - bottomMargin
                       const dayWidth = plotWidth / (dailyTop3Data.length * 1.2) // Largeur pour chaque jour
-                      const barWidth = (dayWidth / 4) * 0.8 // Largeur de chaque barre (3 barres + espace)
+                      const barWidth = (dayWidth / 4) * 1.2 // Largeur de chaque barre (3 barres + espace) - AUGMENTÉE
                       const barSpacing = barWidth * 0.2 // Espace entre les barres
                       const groupSpacing = dayWidth * 0.2 // Espace entre les groupes de jours
                       
@@ -382,18 +383,18 @@ export default function WeeklyStats() {
                                   />
                                   
                                   {/* Avatar au-dessus de la barre */}
-                                  <g transform={`translate(${barCenterX}, ${barY - 15})`}>
+                                  <g transform={`translate(${barCenterX}, ${barY - 20})`}>
                                     <defs>
                                       <clipPath id={`avatar-clip-${dayData.dateKey}-${contributorIndex}`}>
-                                        <circle cx="0" cy="0" r="12" />
+                                        <circle cx="0" cy="0" r="16" />
                                       </clipPath>
                                     </defs>
                                     <image
                                       href={contributor.avatar_url}
-                                      x={-12}
-                                      y={-12}
-                                      height={24}
-                                      width={24}
+                                      x={-16}
+                                      y={-16}
+                                      height={32}
+                                      width={32}
                                       clipPath={`url(#avatar-clip-${dayData.dateKey}-${contributorIndex})`}
                                     />
                                   </g>
@@ -404,11 +405,11 @@ export default function WeeklyStats() {
                             {/* Label de date */}
                             <text
                               x={dayCenterX}
-                              y={topMargin + plotHeight + 20}
+                              y={topMargin + plotHeight + 25}
                               textAnchor="middle"
                               fill="currentColor"
-                              fontSize={12}
-                              transform={`rotate(-45 ${dayCenterX} ${topMargin + plotHeight + 20})`}
+                              fontSize={13}
+                              transform={`rotate(-45 ${dayCenterX} ${topMargin + plotHeight + 25})`}
                             >
                               {dayData.date}
                             </text>
@@ -431,7 +432,7 @@ export default function WeeklyStats() {
                       let xPos = tooltipPosition.x + offsetX
                       let yPos = tooltipPosition.y + offsetY
                       
-                      if (xPos + tooltipWidth > 800) {
+                      if (xPos + tooltipWidth > 1000) {
                         xPos = tooltipPosition.x - tooltipWidth - offsetX
                       }
                       if (yPos < 0) {
@@ -508,20 +509,20 @@ export default function WeeklyStats() {
                     })()}
                     
                     {/* Axe Y */}
-                    <g stroke="currentColor" fill="currentColor" fontSize={12}>
+                    <g stroke="currentColor" fill="currentColor" fontSize={13}>
                       {[0, 1, 2, 3, 4, 5].map((i) => {
-                        const y = 80 + (i * (280 / 5))
+                        const y = 90 + (i * (310 / 5))
                         const value = maxValue - (i * (maxValue / 5))
                         return (
                           <g key={i}>
                             <line
-                              x1="40"
+                              x1="50"
                               y1={y}
-                              x2="45"
+                              x2="55"
                               y2={y}
                             />
                             <text
-                              x="35"
+                              x="45"
                               y={y + 4}
                               textAnchor="end"
                             >
@@ -539,7 +540,7 @@ export default function WeeklyStats() {
         </div>
         
         {/* Liste des contributeurs - 1 colonne sur desktop */}
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 order-1 lg:order-2">
           <div className="card bg-base-200 shadow-xl">
             <div className="card-body p-6">
               <h2 className="text-xl font-bold mb-4">Top contributors</h2>

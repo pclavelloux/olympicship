@@ -282,12 +282,13 @@ export default function StatsPage() {
                     <Calendar className="w-4 h-4 text-base-content/70" />
                   </div>
                 </div>
-                <span className="text-base-content/70 font-medium">→</span>
+                <span className="text-base-content/50 text-xs md:hidden ml-2">(7 days)</span>
+                <span className="text-base-content/70 font-medium hidden md:inline">→</span>
                 <input
                   type="date"
                   value={endDate}
                   readOnly
-                  className="input input-bordered input-sm bg-gh-tertiary border-base-300 text-base-content/50 cursor-not-allowed px-3 py-2 min-w-[140px]"
+                  className="input input-bordered input-sm bg-gh-tertiary border-base-300 text-base-content/50 cursor-not-allowed px-3 py-2 min-w-[140px] hidden md:block"
                   title="Date de fin calculée automatiquement (7 jours après la date de début)"
                   style={{
                     colorScheme: 'dark',

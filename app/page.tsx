@@ -59,6 +59,13 @@ export default function Home() {
     }
   }, [])
 
+  // Initialiser le viewMode sur mobile au montage
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      setViewMode('weekly')
+    }
+  }, [])
+
   useEffect(() => {
     // Check for success/error messages in URL
     const params = new URLSearchParams(window.location.search)
@@ -122,11 +129,11 @@ export default function Home() {
           try {
             const profile = await fetchCurrentUser()
             if (profile) {
-              console.log('✅ User profile fetched successfully:', profile.github_username)
+              // console.log('✅ User profile fetched successfully:', profile.github_username)
               await fetchUsers(false) // Refresh users list without showing loading
               return // Success, stop retrying
             } else {
-              console.log(`⏳ Attempt ${i + 1}/${attempts}: Profile not found yet, retrying...`)
+              console.log(`Profile not found yet, retrying...`)
             }
           } catch (error) {
             console.error('Error fetching user:', error)
@@ -154,13 +161,13 @@ export default function Home() {
     // Check initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        console.log('Initial session found:', session.user.id)
+        // console.log('Initial session found:', session.user.id)
         fetchCurrentUser()
       }
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session?.user?.id)
+      // console.log('Auth state changed:', event, session?.user?.id)
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
         // User signed in, token refreshed, or user updated - fetch user profile
         await fetchCurrentUser()
