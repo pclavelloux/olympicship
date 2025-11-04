@@ -57,6 +57,8 @@ export async function POST() {
       tax_id_collection: {
         enabled: true,
       },
+      // Autoriser l'utilisation de codes promo
+      allow_promotion_codes: true,
       success_url: `${baseUrl}/sponsor/setup?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/?canceled=true`,
     })
