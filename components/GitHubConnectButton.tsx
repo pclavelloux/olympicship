@@ -74,18 +74,18 @@ export default function GitHubConnectButton({ isAuthenticated, onSignOut, label 
     }
   }
 
-  if (isAuthenticated) {
-    return (
-      <button
-        onClick={handleSignOut}
-        disabled={isLoading}
-        className="btn btn-error btn-sm rounded-gh"
-      >
-        {isLoading && <span className="loading loading-spinner loading-xs"></span>}
-        {isLoading ? 'Signing out...' : 'Sign Out'}
-      </button>
-    )
-  }
+  // if (isAuthenticated) {
+  //   return (
+  //     <button
+  //       onClick={handleSignOut}
+  //       disabled={isLoading}
+  //       className="btn btn-error btn-sm rounded-gh"
+  //     >
+  //       {isLoading && <span className="loading loading-spinner loading-xs"></span>}
+  //       {isLoading ? 'Signing out...' : 'Sign Out'}
+  //     </button>
+  //   )
+  // }
 
   return (
     <button 

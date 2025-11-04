@@ -8,7 +8,7 @@ export async function PATCH(
   try {
     const { githubId } = await params
     const body = await request.json()
-    const { display_username, website_url, other_urls } = body
+    const { display_username, website_url, open_to_work, open_for_partner, languages } = body
 
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -39,8 +39,6 @@ export async function PATCH(
     }
 
     // Build update object
-    // Main website is stored in website_url (first URL in the list)
-    // All URLs (main first) are stored in other_urls array
     const updateData: any = {}
     
     if (display_username !== undefined) {
@@ -50,16 +48,23 @@ export async function PATCH(
     if (website_url !== undefined) {
       updateData.website_url = website_url || null
     }
-    
-    // Try to update with other_urls if provided
-    // If other_urls column doesn't exist, we'll fall back to updating only website_url
-    if (other_urls !== undefined) {
-      // other_urls contains all URLs with main website as first element
-      // Store as JSONB array (Supabase will handle the conversion)
-      updateData.other_urls = other_urls || []
+
+    // Update open_to_work if provided
+    if (open_to_work !== undefined) {
+      updateData.open_to_work = open_to_work
     }
 
-    let { data, error } = await supabase
+    // Update open_for_partner if provided
+    if (open_for_partner !== undefined) {
+      updateData.open_for_partner = open_for_partner
+    }
+
+    // Update languages if provided
+    if (languages !== undefined) {
+      updateData.languages = languages || []
+    }
+
+    const { data, error } = await supabase
       .from('profiles')
       .update(updateData)
       .eq('github_id', githubId)
@@ -67,55 +72,7 @@ export async function PATCH(
       .select()
       .single()
 
-    // If error is related to column not existing (other_urls), retry without it
-    if (error && other_urls !== undefined) {
-      const errorMessage = String(error.message || error).toLowerCase()
-      const errorCode = (error as any)?.code || ''
-      
-      // Check if error is about column not existing or unknown column
-      const isColumnError = errorMessage.includes('column') && 
-                           (errorMessage.includes('other_urls') || 
-                            errorMessage.includes('does not exist') ||
-                            errorMessage.includes('unknown') ||
-                            errorCode === '42703') // PostgreSQL error code for undefined column
-      
-      if (isColumnError) {
-        console.warn('other_urls column does not exist, storing all URLs in website_url as JSON:', errorMessage)
-        // Store all URLs in website_url as JSON string as fallback
-        const fallbackUpdateData: any = {}
-        if (display_username !== undefined) {
-          fallbackUpdateData.display_username = display_username
-        }
-        // Store all URLs (including main) as JSON string in website_url
-        if (other_urls && Array.isArray(other_urls) && other_urls.length > 0) {
-          // Store as JSON string in website_url
-          fallbackUpdateData.website_url = JSON.stringify(other_urls)
-        } else if (website_url !== undefined) {
-          // If no other_urls array, just use website_url as is
-          fallbackUpdateData.website_url = website_url || null
-        }
-        
-        const retryResult = await supabase
-          .from('profiles')
-          .update(fallbackUpdateData)
-          .eq('github_id', githubId)
-          .eq('id', user.id)
-          .select()
-          .single()
-        
-        if (retryResult.error) {
-          console.error('Supabase error on retry:', retryResult.error)
-          throw retryResult.error
-        }
-        
-        data = retryResult.data
-        error = null
-      } else {
-        // Different error, throw it
-        console.error('Supabase error:', error)
-        throw error
-      }
-    } else if (error) {
+    if (error) {
       console.error('Supabase error:', error)
       throw error
     }

@@ -24,6 +24,8 @@ export default function LeaderboardTable({ users, currentUserGithubUsername }: L
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all')
   const [showTimeFilter, setShowTimeFilter] = useState(false)
+  const [filterOpenToWork, setFilterOpenToWork] = useState(false)
+  const [filterOpenForPartner, setFilterOpenForPartner] = useState(false)
   const [visibleRows, setVisibleRows] = useState(20) // Limit initial render
 
   // Debounce search query to avoid excessive filtering
@@ -37,10 +39,15 @@ export default function LeaderboardTable({ users, currentUserGithubUsername }: L
     return () => clearTimeout(timer)
   }, [searchQuery])
 
-  // Reset visible rows when time filter changes
+  // Reset visible rows when filters change
   useEffect(() => {
     setVisibleRows(20)
   }, [timeFilter])
+
+  // Reset visible rows when status filters change
+  useEffect(() => {
+    setVisibleRows(20)
+  }, [filterOpenToWork, filterOpenForPartner])
 
   // Helper function to extract domain from URL safely
   const getDomainFromUrl = (url: string): string | null => {
@@ -82,9 +89,7 @@ export default function LeaderboardTable({ users, currentUserGithubUsername }: L
   // Memoize URL parsing helper to avoid recalculating on every render
   const parseUserUrls = useCallback((user: User) => {
     const allUrls: string[] = []
-    if (user.other_urls && user.other_urls.length > 0) {
-      allUrls.push(...user.other_urls)
-    } else if (user.website_url) {
+    if (user.website_url) {
       try {
         const parsed = JSON.parse(user.website_url)
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -99,17 +104,19 @@ export default function LeaderboardTable({ users, currentUserGithubUsername }: L
     return allUrls
   }, [])
 
-  // Filter and sort users
-  const filteredAndSortedUsers = useMemo(() => {
-    // Filter by search query (using debounced value)
+  // Calculate all users with filtered contributions for ranking (without search filter)
+  const allUsersWithRank = useMemo(() => {
+    // Apply only status filters (not search filter) to get the full ranking list
     let filtered = users
-    if (debouncedSearchQuery.trim()) {
-      const query = debouncedSearchQuery.trim().toLowerCase()
-      filtered = users.filter((u) => {
-        const username = (u.display_username || u.github_username || '').toLowerCase()
-        const githubUsername = (u.github_username || '').toLowerCase()
-        return username.includes(query) || githubUsername.includes(query)
-      })
+
+    // Filter by open_to_work
+    if (filterOpenToWork) {
+      filtered = filtered.filter((u) => u.open_to_work === true)
+    }
+
+    // Filter by open_for_partner
+    if (filterOpenForPartner) {
+      filtered = filtered.filter((u) => u.open_for_partner === true)
     }
 
     // Calculate contributions for each user based on time filter
@@ -120,7 +127,23 @@ export default function LeaderboardTable({ users, currentUserGithubUsername }: L
 
     // Sort by filtered contributions (descending)
     return usersWithFilteredContributions.sort((a, b) => b.filteredContributions - a.filteredContributions)
-  }, [users, debouncedSearchQuery, timeFilter])
+  }, [users, timeFilter, filterOpenToWork, filterOpenForPartner])
+
+  // Filter and sort users (with search filter)
+  const filteredAndSortedUsers = useMemo(() => {
+    // Apply search filter to the already sorted and ranked list
+    let filtered = allUsersWithRank
+    if (debouncedSearchQuery.trim()) {
+      const query = debouncedSearchQuery.trim().toLowerCase()
+      filtered = allUsersWithRank.filter((u) => {
+        const username = (u.display_username || u.github_username || '').toLowerCase()
+        const githubUsername = (u.github_username || '').toLowerCase()
+        return username.includes(query) || githubUsername.includes(query)
+      })
+    }
+
+    return filtered
+  }, [allUsersWithRank, debouncedSearchQuery])
 
   const timeFilterLabels: Record<TimeFilter, string> = {
     all: 'All time',
@@ -148,40 +171,71 @@ export default function LeaderboardTable({ users, currentUserGithubUsername }: L
             />
           </div>
 
-          {/* Time filter dropdown */}
-          <div className="relative">
+          {/* Filters container */}
+          <div className="flex flex-wrap gap-2">
+            {/* Time filter dropdown */}
+          
+
+            {/* Open to work filter */}
             <button
-              onClick={() => setShowTimeFilter(!showTimeFilter)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-base-200 border border-base-300 text-base-content hover:bg-base-300 transition-colors"
+              onClick={() => setFilterOpenToWork(!filterOpenToWork)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border transition-colors ${
+                filterOpenToWork
+                  ? 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800'
+                  : 'bg-base-200 border-base-300 text-base-content hover:bg-base-300'
+              }`}
             >
-              <span>{timeFilterLabels[timeFilter]}</span>
-              <ChevronDown className={`w-4 h-4 transition-transform ${showTimeFilter ? 'rotate-180' : ''}`} />
+          
+              <span className="text-sm font-medium">Open to work</span>
             </button>
 
-            {showTimeFilter && (
-              <>
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setShowTimeFilter(false)}
-                />
-                <div className="absolute right-0 mt-2 w-48 rounded-lg bg-base-200 border border-base-300 shadow-lg z-20">
-                  {(['all', 'week', 'month'] as TimeFilter[]).map((filter) => (
-                    <button
-                      key={filter}
-                      onClick={() => {
-                        setTimeFilter(filter)
-                        setShowTimeFilter(false)
-                      }}
-                      className={`w-full text-left px-4 py-2 hover:bg-base-300 transition-colors first:rounded-t-lg last:rounded-b-lg ${
-                        timeFilter === filter ? 'bg-primary/20 text-primary' : 'text-base-content'
-                      }`}
-                    >
-                      {timeFilterLabels[filter]}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
+            {/* Open for partner filter */}
+            <button
+              onClick={() => setFilterOpenForPartner(!filterOpenForPartner)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border transition-colors ${
+                filterOpenForPartner
+                  ? 'bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800'
+                  : 'bg-base-200 border-base-300 text-base-content hover:bg-base-300'
+              }`}
+            >
+              
+              <span className="text-sm font-medium">Looking for partners</span>
+            </button>
+
+            <div className="relative">
+              <button
+                onClick={() => setShowTimeFilter(!showTimeFilter)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-base-200 border border-base-300 text-base-content hover:bg-base-300 transition-colors"
+              >
+                <span>{timeFilterLabels[timeFilter]}</span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${showTimeFilter ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showTimeFilter && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setShowTimeFilter(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-48 bg-gh-primary rounded-lg bg-base-200 border border-base-300 shadow-lg z-20">
+                    {(['all', 'week', 'month'] as TimeFilter[]).map((filter) => (
+                      <button
+                        key={filter}
+                        onClick={() => {
+                          setTimeFilter(filter)
+                          setShowTimeFilter(false)
+                        }}
+                        className={`w-full text-left px-4 py-2 hover:bg-base-300 transition-colors first:rounded-t-lg last:rounded-b-lg ${
+                          timeFilter === filter ? 'bg-primary/20 text-primary' : 'text-base-content'
+                        }`}
+                      >
+                        {timeFilterLabels[filter]}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -193,12 +247,13 @@ export default function LeaderboardTable({ users, currentUserGithubUsername }: L
               <th className="text-base-content/60 font-medium py-4 px-4 text-left">Rank</th>
               <th className="text-base-content/60 font-medium py-4 px-4 text-left">User</th>
               <th className="text-base-content/60 font-medium py-4 px-4 text-left">Contributions</th>
-              <th className="text-base-content/60 font-medium py-4 px-4 text-left">Total</th>
             </tr>
           </thead>
           <tbody>
-            {filteredAndSortedUsers.slice(0, visibleRows).map((user, index) => {
+            {filteredAndSortedUsers.slice(0, visibleRows).map((user) => {
               const filteredContributions = user.filteredContributions
+              // Find the real rank in the complete list
+              const realRank = allUsersWithRank.findIndex((u) => u.id === user.id) + 1
               return (
                 <tr
                   key={user.id}
@@ -207,24 +262,18 @@ export default function LeaderboardTable({ users, currentUserGithubUsername }: L
                     : ''
                     }`}
                 >
-                  {/* Rank */}
-                  <td className="align-middle py-4 px-4">
-                    <div className="flex items-center justify-center lg:justify-start">
-                      {index < 3 ? (
+                  {/* Rank + Avatar */}
+                  <td className="align-top py-4 px-4">
+                    <div className="flex flex-col items-center gap-2">
+                      {realRank <= 3 ? (
                         <span className="text-xl lg:text-2xl font-bold">
-                          {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
+                          {realRank === 1 ? '🥇' : realRank === 2 ? '🥈' : '🥉'}
                         </span>
                       ) : (
                         <span className="text-base lg:text-lg font-semibold text-base-content/60">
-                          #{index + 1}
+                          #{realRank}
                         </span>
                       )}
-                    </div>
-                  </td>
-
-                  {/* User Info */}
-                  <td className="align-middle py-4 px-4">
-                    <div className="flex items-center gap-3">
                       <div className="avatar">
                         <div className="w-10 lg:w-12 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2 overflow-hidden">
                           <Image
@@ -236,6 +285,12 @@ export default function LeaderboardTable({ users, currentUserGithubUsername }: L
                           />
                         </div>
                       </div>
+                    </div>
+                  </td>
+
+                  {/* User Info */}
+                  <td className="align-middle py-4 px-4">
+                    <div className="flex items-center gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <Link
@@ -249,11 +304,24 @@ export default function LeaderboardTable({ users, currentUserGithubUsername }: L
                           >
                             {user.display_username || user.github_username}
                           </Link>
+                          {user.open_to_work && (
+                            <span 
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800"
+                              title={user.languages && user.languages.length > 0 ? `Skills: ${user.languages.join(', ')}` : 'Open to work'}
+                            >
+                              Open to work
+                            </span>
+                          )}
+                          {user.open_for_partner && (
+                            <span 
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800"
+                              title="Open for business partnership"
+                            >
+                              Looking for partners
+                            </span>
+                          )}
                         </div>
-                        <div className="text-sm text-base-content/60 font-medium">
-                          <span className="text-gh-pink"> {filteredContributions.toLocaleString()} </span>
-                          <span className="text-base-content/60">contributions</span>
-                        </div>
+                      
                         {/* Display favicons for URLs */}
                         {(() => {
                           const allUrls = parseUserUrls(user)
@@ -295,24 +363,19 @@ export default function LeaderboardTable({ users, currentUserGithubUsername }: L
 
                   {/* Contribution Grid */}
                   <td className="align-middle py-4 px-4">
-                    <MemoizedContributionGrid
-                      contributionsData={user.contributions_data || {}}
-                      username={user.github_username}
-                      compact={true}
-                    />
-                  </td>
-
-                  {/* Total Contributions */}
-                  <td className="align-middle py-4 px-4">
-                    <div className="flex items-center justify-end">
-                      <div className="text-right">
-                        <div className="text-xl lg:text-2xl font-bold text-success">
-                          {filteredContributions.toLocaleString()}
+                    <div className="flex flex-col items-center">
+                      {/* Total Contributions - au-dessus de la grille */}
+                      <div className="text-sm text-base-content/60 font-medium">
+                          <span className="text-gh-pink font-bold"> {filteredContributions.toLocaleString()} </span>
+                          <span className="text-base-content/60">contributions</span>
                         </div>
-                        <div className="text-xs text-base-content/60 hidden lg:block">
-                          contributions
-                        </div>
-                      </div>
+                     
+                      {/* Grille de contributions */}
+                      <MemoizedContributionGrid
+                        contributionsData={user.contributions_data || {}}
+                        username={user.github_username}
+                        compact={true}
+                      />
                     </div>
                   </td>
                 </tr>

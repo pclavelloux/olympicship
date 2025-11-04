@@ -14,6 +14,9 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   github_token TEXT, -- Token GitHub personnel (chiffré côté app)
   total_contributions INTEGER DEFAULT 0,
   contributions_data JSONB,
+  open_to_work BOOLEAN DEFAULT FALSE,
+  open_for_partner BOOLEAN DEFAULT FALSE,
+  languages TEXT[] DEFAULT '{}',
   last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -22,6 +25,8 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 CREATE INDEX IF NOT EXISTS idx_profiles_github_username ON public.profiles(github_username);
 CREATE INDEX IF NOT EXISTS idx_profiles_total_contributions ON public.profiles(total_contributions DESC);
 CREATE INDEX IF NOT EXISTS idx_profiles_github_id ON public.profiles(github_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_open_to_work ON public.profiles(open_to_work) WHERE open_to_work = true;
+CREATE INDEX IF NOT EXISTS idx_profiles_open_for_partner ON public.profiles(open_for_partner) WHERE open_for_partner = true;
 
 -- Enable Row Level Security
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;

@@ -36,7 +36,7 @@ function SponsorCard({ sponsor, side }: { sponsor: Sponsor; side: 'left' | 'righ
 
   return (
     <div
-      className="relative"
+      className="relative group"
       onMouseEnter={() => setShowTooltip(true)}
       onMouseLeave={() => setShowTooltip(false)}
     >
@@ -46,7 +46,7 @@ function SponsorCard({ sponsor, side }: { sponsor: Sponsor; side: 'left' | 'righ
         rel="noopener noreferrer"
         className="block"
       >
-        <div className="card bg-base-100 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer group border border-base-300 rounded-gh">
+        <div className="card bg-base-100 hover:shadow-2xl hover:scale-[1.02] relative z-10 hover:!z-[9999] transition-all duration-300 cursor-pointer group border border-base-300 rounded-gh">
           <div className="card-body p-4">
             <div className="flex items-start gap-3">
               <div className="avatar placeholder">
@@ -210,7 +210,7 @@ export default function SponsorPanel({ side = 'left' }: SponsorPanelProps) {
   }
 
   return (
-    <div className="space-y-4 sticky top-4 min-w-0">
+    <div className="space-y-4 sticky top-4 min-w-0 z-0">
       {/* Display all sponsors for this side */}
       {sideSponsors.map((sponsor) => (
         <SponsorCard key={sponsor.id} sponsor={sponsor} side={side} />

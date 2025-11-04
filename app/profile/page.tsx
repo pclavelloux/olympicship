@@ -13,11 +13,23 @@ export default function ProfilePage() {
   const [displayUsername, setDisplayUsername] = useState('')
   const [mainWebsite, setMainWebsite] = useState('')
   const [otherUrls, setOtherUrls] = useState<string[]>([])
+  const [openToWork, setOpenToWork] = useState(false)
+  const [openForPartner, setOpenForPartner] = useState(false)
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>([])
   const [showInfoTooltip, setShowInfoTooltip] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  // Liste des langages/technologies populaires
+  const availableLanguages = [
+    'JavaScript', 'TypeScript', 'Python', 'Java', 'C++', 'C#', 'Ruby', 'Go',
+    'Rust', 'PHP', 'Swift', 'Kotlin', 'Dart', 'SQL', 'HTML/CSS',
+    'React', 'Vue.js', 'Angular', 'Node.js', 'Next.js', 'Django', 'Flask',
+    'Spring', 'Laravel', 'Rails', '.NET', 'Flutter', 'React Native',
+    'Docker', 'Kubernetes', 'AWS', 'Azure', 'GCP', 'MongoDB', 'PostgreSQL'
+  ]
 
   useEffect(() => {
     fetchProfile()
@@ -39,14 +51,8 @@ export default function ProfilePage() {
       setCurrentUser(data.profile)
       setDisplayUsername(data.profile.display_username || '')
       
-      // All URLs including main (main is first in the list)
-      // Initialize: if other_urls exists and has items, use them; otherwise check website_url
-      // website_url might be a JSON array string if other_urls column doesn't exist
+      // Parse website_url which can be a single URL or a JSON array of URLs
       const getAllUrls = (): string[] => {
-        if (data.profile.other_urls && data.profile.other_urls.length > 0) {
-          return data.profile.other_urls
-        }
-        // Check if website_url is a JSON array (stored when other_urls column doesn't exist)
         if (data.profile.website_url) {
           try {
             const parsed = JSON.parse(data.profile.website_url)
@@ -65,6 +71,9 @@ export default function ProfilePage() {
       const initialUrls = getAllUrls()
       setMainWebsite(initialUrls.length > 0 ? initialUrls[0] : '')
       setOtherUrls(initialUrls.length > 1 ? initialUrls.slice(1) : [])
+      setOpenToWork(data.profile.open_to_work || false)
+      setOpenForPartner(data.profile.open_for_partner || false)
+      setSelectedLanguages(data.profile.languages || [])
     } catch (error) {
       console.error('Error fetching profile:', error)
       router.push('/')
@@ -87,6 +96,14 @@ export default function ProfilePage() {
     setOtherUrls(newUrls)
   }
 
+  const toggleLanguage = (language: string) => {
+    setSelectedLanguages(prev => 
+      prev.includes(language)
+        ? prev.filter(l => l !== language)
+        : [...prev, language]
+    )
+  }
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -105,10 +122,10 @@ export default function ProfilePage() {
       const filteredOtherUrls = otherUrls.filter(url => url.trim() !== '')
       allUrls.push(...filteredOtherUrls)
 
-      // Main website is the first URL (or null if empty)
-      const mainUrl = allUrls.length > 0 ? allUrls[0] : null
-      // Other URLs are all URLs (main is first, so allUrls includes main)
-      const allUrlsForStorage = allUrls
+      // Store all URLs in website_url as JSON array (or single URL)
+      const websiteUrlValue = allUrls.length > 1 
+        ? JSON.stringify(allUrls) 
+        : (allUrls.length === 1 ? allUrls[0] : null)
 
       const response = await fetch(`/api/users/${currentUser.github_id}`, {
         method: 'PATCH',
@@ -117,8 +134,10 @@ export default function ProfilePage() {
         },
         body: JSON.stringify({
           display_username: displayUsername || null,
-          website_url: mainUrl, // Main website is first URL
-          other_urls: allUrlsForStorage, // All URLs including main (main is first)
+          website_url: websiteUrlValue,
+          open_to_work: openToWork,
+          open_for_partner: openForPartner,
+          languages: selectedLanguages,
         }),
       })
 
@@ -305,6 +324,91 @@ export default function ProfilePage() {
                 <Plus className="w-4 h-4" />
                 Add other URL
               </button>
+            </div>
+
+            {/* Open to Work */}
+            <div className="border-t border-gray-200 dark:border-gray-800 pt-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Open to Work
+                  </label>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Show recruiters that you're available for opportunities
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setOpenToWork(!openToWork)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    openToWork ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+                  }`}
+                  disabled={isSaving}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      openToWork ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Languages Selection (only shown when open to work is enabled) */}
+              {openToWork && (
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                    Skills & Technologies
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {availableLanguages.map((language) => (
+                      <button
+                        key={language}
+                        type="button"
+                        onClick={() => toggleLanguage(language)}
+                        className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                          selectedLanguages.includes(language)
+                            ? 'bg-blue-600 text-white hover:bg-blue-700'
+                            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                        }`}
+                        disabled={isSaving}
+                      >
+                        {language}
+                      </button>
+                    ))}
+                  </div>
+                  {selectedLanguages.length > 0 && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                      {selectedLanguages.length} skill{selectedLanguages.length > 1 ? 's' : ''} selected
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Open for Business Partner */}
+              <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200 dark:border-gray-800">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Open for Business Partner
+                  </label>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Looking for a co-founder or business partner
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setOpenForPartner(!openForPartner)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    openForPartner ? 'bg-green-600' : 'bg-gray-300 dark:bg-gray-600'
+                  }`}
+                  disabled={isSaving}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      openForPartner ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
 
             {/* Save Button */}
