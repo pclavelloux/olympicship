@@ -3,7 +3,8 @@ export interface Profile {
   github_username: string
   github_id: string
   display_username?: string
-  website_url?: string
+  website_url?: string // First URL in the list (main website)
+  other_urls?: string[] // Array of all URLs (main is first, rest are others)
   avatar_url?: string
   github_token?: string
   total_contributions: number
