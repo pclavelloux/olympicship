@@ -6,7 +6,7 @@ import LeaderboardTable from '@/components/LeaderboardTable'
 import Header from '@/components/ui/header'
 import SponsorPanel from '@/components/SponsorPanel'
 import SponsorBanner from '@/components/SponsorBanner'
-//import SponsorBannerMobile from '@/components/SponsorBannerMobile'
+import SponsorBannerMobile from '@/components/SponsorBannerMobile'
 import { User as UserIcon } from 'lucide-react'
 import GitHubConnectButton from '@/components/GitHubConnectButton'
 import confetti from 'canvas-confetti'
@@ -269,7 +269,7 @@ export default function Home() {
       </div>
 
       {/* Mobile Sponsor Banner - Bottom of screen, scrolling */}
-      {/* <SponsorBannerMobile /> */}
+      <SponsorBannerMobile /> 
     </main>
   )
 }
