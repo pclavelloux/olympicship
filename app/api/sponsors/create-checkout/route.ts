@@ -38,7 +38,7 @@ export async function POST() {
               name: 'TrustCode Sponsor',
               description: 'Monthly sponsorship - Get your product in front of top developers',
             },
-            unit_amount: 39900, // $399 HT per month
+            unit_amount: 19900, // $399 HT per month
             recurring: {
               interval: 'month',
             },

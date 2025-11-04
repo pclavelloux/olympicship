@@ -117,7 +117,7 @@ function ContributionGrid({ contributionsData, username, compact = false }: Cont
   if (compact) {
     return (
       <div className="w-full">
-        <div className="overflow-x-auto pb-2">
+        <div className="overflow-x-auto overflow-y-visible pb-2 pt-16">
           <div className="inline-block">
             {/* Contribution grid only - no labels */}
             <div className="flex gap-[2px]">
@@ -130,7 +130,9 @@ function ContributionGrid({ contributionsData, username, compact = false }: Cont
                       title={`${format(day.date, 'MMM d, yyyy')}: ${day.count} contribution${day.count !== 1 ? 's' : ''}`}
                     >
                       {/* Tooltip on hover */}
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                        <span className="font-medium">{format(day.date, 'MMM d, yyyy')}</span>
+                        <br />
                         {day.count} commit{day.count !== 1 ? 's' : ''}
                         <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
                       </div>
@@ -151,7 +153,7 @@ function ContributionGrid({ contributionsData, username, compact = false }: Cont
         {totalContributions.toLocaleString()} contributions in the last year
       </div>
       
-      <div className="overflow-x-auto pb-2">
+      <div className="overflow-x-auto overflow-y-visible pb-2 pt-16">
         <div className="inline-block">
           {/* Month labels */}
           <div className="relative mb-1 ml-7 h-4 flex">
@@ -199,7 +201,9 @@ function ContributionGrid({ contributionsData, username, compact = false }: Cont
                       title={`${format(day.date, 'MMM d, yyyy')}: ${day.count} contribution${day.count !== 1 ? 's' : ''}`}
                     >
                       {/* Tooltip on hover */}
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                        <span className="font-medium">{format(day.date, 'MMM d, yyyy')}</span>
+                        <br />
                         {day.count} commit{day.count !== 1 ? 's' : ''}
                         <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
                       </div>
