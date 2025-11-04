@@ -41,6 +41,8 @@ export default function SponsorBannerMobile() {
   const [isPaused, setIsPaused] = useState(false)
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null)
+  const isScrollingHorizontallyRef = useRef(false)
 
   useEffect(() => {
     fetchSponsors()
@@ -264,39 +266,81 @@ export default function SponsorBannerMobile() {
     </div>
   )
 
-  const handleInteractionStart = () => {
-    setIsPaused(true)
-    if (scrollTimeoutRef.current) {
-      clearTimeout(scrollTimeoutRef.current)
+  const handleTouchStart = (e: React.TouchEvent) => {
+    // Only handle if touching the banner content directly
+    const touch = e.touches[0]
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY }
+    isScrollingHorizontallyRef.current = false
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchStartRef.current) return
+    
+    const touch = e.touches[0]
+    const deltaX = Math.abs(touch.clientX - touchStartRef.current.x)
+    const deltaY = Math.abs(touch.clientY - touchStartRef.current.y)
+    
+    // If vertical scroll is more significant, don't interfere - let page scroll
+    if (deltaY > deltaX && deltaY > 15) {
+      // Vertical scroll detected - don't interfere, let the page scroll
+      isScrollingHorizontallyRef.current = false
+      touchStartRef.current = null // Reset to allow page scrolling
+      return
+    }
+    
+    // If horizontal scroll is more significant, allow it and pause animation
+    if (deltaX > deltaY && deltaX > 15) {
+      isScrollingHorizontallyRef.current = true
+      setIsPaused(true)
     }
   }
 
-  const handleInteractionEnd = () => {
-    if (scrollTimeoutRef.current) {
-      clearTimeout(scrollTimeoutRef.current)
+  const handleTouchEnd = () => {
+    if (isScrollingHorizontallyRef.current) {
+      // Only pause if we were scrolling horizontally
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current)
+      }
+      scrollTimeoutRef.current = setTimeout(() => {
+        setIsPaused(false)
+      }, 1500)
     }
-    scrollTimeoutRef.current = setTimeout(() => {
-      // Resume animation after 1.5 seconds
-      setIsPaused(false)
-    }, 1500)
+    touchStartRef.current = null
+    isScrollingHorizontallyRef.current = false
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 bg-base-200 border-t border-base-300 md:hidden overflow-hidden">
+    <div 
+      className="fixed bottom-0 left-0 right-0 z-40 bg-base-200 border-t border-base-300 md:hidden overflow-hidden"
+      style={{
+        touchAction: 'pan-y', // Allow vertical scrolling to pass through to page
+        pointerEvents: 'auto',
+        // Ensure the banner doesn't block page scrolling
+        overscrollBehavior: 'none',
+      }}
+    >
       <div
         ref={containerRef}
-        className="flex gap-4 px-4 py-3"
+        className="sponsor-banner-content flex gap-4 px-4 py-3"
         style={{ 
           width: totalWidth,
           willChange: 'transform',
           transform: 'translateZ(0)', // Force GPU acceleration
           backfaceVisibility: 'hidden', // Optimize rendering
-          contain: 'layout style paint', // Isolate changes for better performance
+          touchAction: 'pan-x pinch-zoom', // Only allow horizontal panning on the banner itself
         }}
-        onTouchStart={handleInteractionStart}
-        onTouchEnd={handleInteractionEnd}
-        onMouseEnter={handleInteractionStart}
-        onMouseLeave={handleInteractionEnd}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => {
+          if (scrollTimeoutRef.current) {
+            clearTimeout(scrollTimeoutRef.current)
+          }
+          scrollTimeoutRef.current = setTimeout(() => {
+            setIsPaused(false)
+          }, 1500)
+        }}
       >
         {duplicatedItems.map((item, index) => {
           if (item.type === 'sponsor') {
