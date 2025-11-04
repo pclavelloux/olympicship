@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { User } from '@/types/user'
 import LeaderboardTable from '@/components/LeaderboardTable'
 import Header from '@/components/ui/header'
@@ -10,6 +10,7 @@ import SponsorBannerMobile from '@/components/SponsorBannerMobile'
 import { User as UserIcon } from 'lucide-react'
 import GitHubConnectButton from '@/components/GitHubConnectButton'
 import confetti from 'canvas-confetti'
+import { createClient } from '@/lib/supabase'
 
 export default function Home() {
   const [users, setUsers] = useState<User[]>([])
@@ -18,12 +19,45 @@ export default function Home() {
   const [successMessage, setSuccessMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
 
+  const fetchCurrentUser = useCallback(async () => {
+    try {
+      const response = await fetch('/api/me')
+      if (!response.ok) {
+        throw new Error('Failed to fetch current user')
+      }
+      const data = await response.json()
+      setCurrentUser(data.profile)
+      return data.profile
+    } catch (error) {
+      console.error('Error fetching current user:', error)
+      return null
+    }
+  }, [])
+
+  const fetchUsers = useCallback(async () => {
+    try {
+      const response = await fetch('/api/users')
+      if (!response.ok) {
+        throw new Error('Failed to fetch users')
+      }
+      const data = await response.json()
+      setUsers(data)
+    } catch (error) {
+      console.error('Error fetching users:', error)
+      setErrorMessage('Failed to load users')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     // Check for success/error messages in URL
     const params = new URLSearchParams(window.location.search)
     const isFirstTime = params.get('firstTime') === 'true'
+    const hasSuccess = params.get('success')
+    const hasError = params.get('error')
 
-    if (params.get('success')) {
+    if (hasSuccess) {
       // Remove query params from URL
       window.history.replaceState({}, '', '/')
 
@@ -65,67 +99,73 @@ export default function Home() {
         }, 5000)
       }
 
-      // Wait a bit for the profile to be created, then fetch current user
-      // Retry multiple times in case the profile takes time to be created
-      const retryFetchUser = async (attempts = 5) => {
+      // Wait a bit for the session to be established and profile to be created
+      // Retry multiple times in case the session/profile takes time to be ready
+      const retryFetchUser = async (attempts = 20) => {
+        // Initial delay to let cookies sync
+        await new Promise(resolve => setTimeout(resolve, 100))
+        
         for (let i = 0; i < attempts; i++) {
-          await new Promise(resolve => setTimeout(resolve, 500 * (i + 1)))
+          // Wait progressively longer between attempts
+          const delay = i === 0 ? 100 : Math.min(250 * (i + 1), 2000)
+          await new Promise(resolve => setTimeout(resolve, delay))
+          
           try {
-            const response = await fetch('/api/me')
-            if (response.ok) {
-              const data = await response.json()
-              if (data.profile) {
-                setCurrentUser(data.profile)
-                fetchUsers() // Refresh users list
-                return // Success, stop retrying
-              }
+            const profile = await fetchCurrentUser()
+            if (profile) {
+              console.log('✅ User profile fetched successfully:', profile.github_username)
+              await fetchUsers() // Refresh users list
+              return // Success, stop retrying
+            } else {
+              console.log(`⏳ Attempt ${i + 1}/${attempts}: Profile not found yet, retrying...`)
             }
           } catch (error) {
             console.error('Error fetching user:', error)
           }
         }
         // If we get here, still refresh users list
-        fetchUsers()
+        console.warn('⚠️ Failed to fetch user profile after', attempts, 'attempts')
+        await fetchUsers()
       }
       retryFetchUser()
-    }
-    if (params.get('error')) {
+    } else if (hasError) {
       setErrorMessage(params.get('error') || 'An error occurred')
       window.history.replaceState({}, '', '/')
+      fetchUsers()
+      fetchCurrentUser()
+    } else {
+      // Normal load - fetch users and current user
+      fetchUsers()
+      fetchCurrentUser()
     }
 
-    fetchUsers()
-    fetchCurrentUser()
-  }, [])
-
-  const fetchUsers = async () => {
-    try {
-      const response = await fetch('/api/users')
-      if (!response.ok) {
-        throw new Error('Failed to fetch users')
+    // Listen to auth state changes
+    const supabase = createClient()
+    
+    // Check initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        console.log('Initial session found:', session.user.id)
+        fetchCurrentUser()
       }
-      const data = await response.json()
-      setUsers(data)
-    } catch (error) {
-      console.error('Error fetching users:', error)
-      setErrorMessage('Failed to load users')
-    } finally {
-      setIsLoading(false)
-    }
-  }
+    })
 
-  const fetchCurrentUser = async () => {
-    try {
-      const response = await fetch('/api/me')
-      if (!response.ok) {
-        throw new Error('Failed to fetch current user')
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session?.user?.id)
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+        // User signed in, token refreshed, or user updated - fetch user profile
+        await fetchCurrentUser()
+        await fetchUsers()
+      } else if (event === 'SIGNED_OUT') {
+        // User signed out
+        setCurrentUser(null)
       }
-      const data = await response.json()
-      setCurrentUser(data.profile)
-    } catch (error) {
-      console.error('Error fetching current user:', error)
+    })
+
+    return () => {
+      subscription.unsubscribe()
     }
-  }
+  }, [fetchCurrentUser, fetchUsers])
 
   const handleSignOut = () => {
     setCurrentUser(null)
@@ -181,7 +221,11 @@ export default function Home() {
               </p>
 
               <div className="flex justify-center">
-                <GitHubConnectButton label="Add my GitHub" />
+                <GitHubConnectButton 
+                  label="Add my GitHub" 
+                  isAuthenticated={!!currentUser}
+                  onSignOut={handleSignOut}
+                />
               </div>
             </div>
 
