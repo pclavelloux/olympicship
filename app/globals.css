@@ -14,9 +14,25 @@
   --background-end-rgb: 255, 255, 255;
 }
 
+html {
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  /* Fix scroll on mobile */
+  height: 100%;
+}
+
 body {
   color: rgb(var(--foreground-rgb));
   background: rgb(var(--background-start-rgb));
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  /* Fix scroll on mobile */
+  position: relative;
+  width: 100%;
+  height: auto;
+  min-height: 100vh;
 }
 
 @layer utilities {

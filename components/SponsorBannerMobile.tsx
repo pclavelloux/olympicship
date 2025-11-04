@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Megaphone } from 'lucide-react'
-import { motion } from 'framer-motion'
 
 interface Sponsor {
   id: string
@@ -41,6 +40,9 @@ export default function SponsorBannerMobile() {
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null)
+  const isScrollingHorizontallyRef = useRef(false)
 
   useEffect(() => {
     fetchSponsors()
@@ -92,6 +94,69 @@ export default function SponsorBannerMobile() {
     }
   }
 
+  // Duplicate items for infinite scroll
+  const allItems = [
+    ...sponsors.map(sponsor => ({ type: 'sponsor' as const, data: sponsor })),
+    { type: 'empty' as const, data: null }
+  ]
+  const duplicatedItems = [...allItems, ...allItems]
+
+  // Calculate card width + gap for proper animation
+  const cardWidth = 200 // w-[200px]
+  const gap = 16 // gap-4 = 1rem = 16px
+  const singleSetWidth = allItems.length * (cardWidth + gap)
+  const totalWidth = singleSetWidth * 2
+
+  // Setup CSS animation with pause/resume
+  // This useEffect must be called before any early returns to maintain Hook order
+  useEffect(() => {
+    if (!containerRef.current || loading || sponsors.length === 0) return
+
+    const container = containerRef.current
+    const animationDuration = 30 // seconds
+
+    // Create or update CSS animation
+    const styleId = 'sponsor-banner-animation'
+    let styleElement = document.getElementById(styleId) as HTMLStyleElement
+    
+    if (!styleElement) {
+      styleElement = document.createElement('style')
+      styleElement.id = styleId
+      document.head.appendChild(styleElement)
+    }
+
+    const keyframes = `
+      @keyframes sponsor-banner-scroll {
+        0% {
+          transform: translateX(0);
+        }
+        100% {
+          transform: translateX(-${singleSetWidth}px);
+        }
+      }
+    `
+
+    styleElement.textContent = keyframes
+
+    // Apply animation styles with GPU acceleration
+    container.style.animation = isPaused 
+      ? 'none' 
+      : `sponsor-banner-scroll ${animationDuration}s linear infinite`
+    container.style.willChange = 'transform'
+    container.style.transform = 'translateZ(0)' // Force GPU acceleration
+    container.style.backfaceVisibility = 'hidden' // Optimize rendering
+    container.style.perspective = '1000px' // Enable 3D transforms
+
+    // Cleanup
+    return () => {
+      if (container) {
+        container.style.animation = 'none'
+        container.style.willChange = 'auto'
+      }
+    }
+  }, [isPaused, singleSetWidth, loading, sponsors.length])
+
+  // Early returns after all Hooks have been called
   if (loading) {
     return null
   }
@@ -201,58 +266,81 @@ export default function SponsorBannerMobile() {
     </div>
   )
 
-  // Duplicate items for infinite scroll
-  const allItems = [
-    ...sponsors.map(sponsor => ({ type: 'sponsor', data: sponsor })),
-    { type: 'empty', data: null }
-  ]
-  const duplicatedItems = [...allItems, ...allItems]
+  const handleTouchStart = (e: React.TouchEvent) => {
+    // Only handle if touching the banner content directly
+    const touch = e.touches[0]
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY }
+    isScrollingHorizontallyRef.current = false
+  }
 
-  // Calculate card width + gap for proper animation
-  const cardWidth = 200 // w-[200px]
-  const gap = 16 // gap-4 = 1rem = 16px
-  const singleSetWidth = allItems.length * (cardWidth + gap)
-  const totalWidth = singleSetWidth * 2
-
-  const handleInteractionStart = () => {
-    setIsPaused(true)
-    if (scrollTimeoutRef.current) {
-      clearTimeout(scrollTimeoutRef.current)
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchStartRef.current) return
+    
+    const touch = e.touches[0]
+    const deltaX = Math.abs(touch.clientX - touchStartRef.current.x)
+    const deltaY = Math.abs(touch.clientY - touchStartRef.current.y)
+    
+    // If vertical scroll is more significant, don't interfere - let page scroll
+    if (deltaY > deltaX && deltaY > 15) {
+      // Vertical scroll detected - don't interfere, let the page scroll
+      isScrollingHorizontallyRef.current = false
+      touchStartRef.current = null // Reset to allow page scrolling
+      return
+    }
+    
+    // If horizontal scroll is more significant, allow it and pause animation
+    if (deltaX > deltaY && deltaX > 15) {
+      isScrollingHorizontallyRef.current = true
+      setIsPaused(true)
     }
   }
 
-  const handleInteractionEnd = () => {
-    if (scrollTimeoutRef.current) {
-      clearTimeout(scrollTimeoutRef.current)
+  const handleTouchEnd = () => {
+    if (isScrollingHorizontallyRef.current) {
+      // Only pause if we were scrolling horizontally
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current)
+      }
+      scrollTimeoutRef.current = setTimeout(() => {
+        setIsPaused(false)
+      }, 1500)
     }
-    scrollTimeoutRef.current = setTimeout(() => {
-      // Resume animation after 1.5 seconds
-      setIsPaused(false)
-    }, 1500)
+    touchStartRef.current = null
+    isScrollingHorizontallyRef.current = false
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 bg-base-200 border-t border-base-300 md:hidden overflow-hidden">
-      <motion.div
-        className="flex gap-4 px-4 py-3 cursor-grab active:cursor-grabbing"
-        style={{ width: totalWidth }}
-        animate={isPaused ? {} : {
-          x: [0, -singleSetWidth],
+    <div 
+      className="fixed bottom-0 left-0 right-0 z-40 bg-base-200 border-t border-base-300 md:hidden overflow-hidden"
+      style={{
+        touchAction: 'pan-y', // Allow vertical scrolling to pass through to page
+        pointerEvents: 'auto',
+        // Ensure the banner doesn't block page scrolling
+        overscrollBehavior: 'none',
+      }}
+    >
+      <div
+        ref={containerRef}
+        className="sponsor-banner-content flex gap-4 px-4 py-3"
+        style={{ 
+          width: totalWidth,
+          willChange: 'transform',
+          transform: 'translateZ(0)', // Force GPU acceleration
+          backfaceVisibility: 'hidden', // Optimize rendering
+          touchAction: 'pan-x pinch-zoom', // Only allow horizontal panning on the banner itself
         }}
-        transition={{
-          x: {
-            repeat: Infinity,
-            repeatType: 'loop',
-            duration: 30,
-            ease: 'linear',
-          },
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => {
+          if (scrollTimeoutRef.current) {
+            clearTimeout(scrollTimeoutRef.current)
+          }
+          scrollTimeoutRef.current = setTimeout(() => {
+            setIsPaused(false)
+          }, 1500)
         }}
-        drag="x"
-        dragConstraints={{ left: -singleSetWidth * 2, right: 0 }}
-        dragElastic={0}
-        onDragStart={handleInteractionStart}
-        onDragEnd={handleInteractionEnd}
-        whileDrag={{ cursor: 'grabbing' }}
       >
         {duplicatedItems.map((item, index) => {
           if (item.type === 'sponsor') {
@@ -261,7 +349,7 @@ export default function SponsorBannerMobile() {
             return renderEmptySlot(`empty-${index}`)
           }
         })}
-      </motion.div>
+      </div>
     </div>
   )
 }

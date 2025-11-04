@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback, memo } from 'react'
 import { User } from '@/types/user'
 import ContributionGrid from './ContributionGrid'
 import Image from 'next/image'
@@ -21,8 +21,26 @@ interface UserWithFilteredContributions extends User {
 
 export default function LeaderboardTable({ users, currentUserGithubUsername }: LeaderboardTableProps) {
   const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all')
   const [showTimeFilter, setShowTimeFilter] = useState(false)
+  const [visibleRows, setVisibleRows] = useState(20) // Limit initial render
+
+  // Debounce search query to avoid excessive filtering
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery)
+      // Reset visible rows when search changes
+      setVisibleRows(20)
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
+  // Reset visible rows when time filter changes
+  useEffect(() => {
+    setVisibleRows(20)
+  }, [timeFilter])
 
   // Helper function to extract domain from URL safely
   const getDomainFromUrl = (url: string): string | null => {
@@ -61,12 +79,32 @@ export default function LeaderboardTable({ users, currentUserGithubUsername }: L
     }, 0)
   }
 
+  // Memoize URL parsing helper to avoid recalculating on every render
+  const parseUserUrls = useCallback((user: User) => {
+    const allUrls: string[] = []
+    if (user.other_urls && user.other_urls.length > 0) {
+      allUrls.push(...user.other_urls)
+    } else if (user.website_url) {
+      try {
+        const parsed = JSON.parse(user.website_url)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          allUrls.push(...parsed)
+        } else {
+          allUrls.push(user.website_url)
+        }
+      } catch {
+        allUrls.push(user.website_url)
+      }
+    }
+    return allUrls
+  }, [])
+
   // Filter and sort users
   const filteredAndSortedUsers = useMemo(() => {
-    // Filter by search query
+    // Filter by search query (using debounced value)
     let filtered = users
-    if (searchQuery.trim()) {
-      const query = searchQuery.trim().toLowerCase()
+    if (debouncedSearchQuery.trim()) {
+      const query = debouncedSearchQuery.trim().toLowerCase()
       filtered = users.filter((u) => {
         const username = (u.display_username || u.github_username || '').toLowerCase()
         const githubUsername = (u.github_username || '').toLowerCase()
@@ -82,7 +120,7 @@ export default function LeaderboardTable({ users, currentUserGithubUsername }: L
 
     // Sort by filtered contributions (descending)
     return usersWithFilteredContributions.sort((a, b) => b.filteredContributions - a.filteredContributions)
-  }, [users, searchQuery, timeFilter])
+  }, [users, debouncedSearchQuery, timeFilter])
 
   const timeFilterLabels: Record<TimeFilter, string> = {
     all: 'All time',
@@ -90,8 +128,11 @@ export default function LeaderboardTable({ users, currentUserGithubUsername }: L
     month: 'Last month',
   }
 
+  // Memoized ContributionGrid to avoid re-renders
+  const MemoizedContributionGrid = memo(ContributionGrid)
+
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto" style={{ touchAction: 'pan-y pan-x', WebkitOverflowScrolling: 'touch' }}>
       {/* Search bar and time filter */}
       <div className="p-4 border-b border-gray-600/30 bg-gh-tertiary">
         <div className="flex flex-col sm:flex-row gap-4">
@@ -156,7 +197,7 @@ export default function LeaderboardTable({ users, currentUserGithubUsername }: L
             </tr>
           </thead>
           <tbody>
-            {filteredAndSortedUsers.map((user, index) => {
+            {filteredAndSortedUsers.slice(0, visibleRows).map((user, index) => {
               const filteredContributions = user.filteredContributions
               return (
                 <tr
@@ -199,26 +240,8 @@ export default function LeaderboardTable({ users, currentUserGithubUsername }: L
                         <div className="flex items-center gap-2 flex-wrap">
                           <Link
                             href={(() => {
-                              // Main website is first URL in other_urls array, or fallback to website_url
-                              // website_url might be a JSON array if other_urls column doesn't exist
-                              let mainUrl: string | undefined
-                              if (user.other_urls && user.other_urls.length > 0) {
-                                mainUrl = user.other_urls[0]
-                              } else if (user.website_url) {
-                                // Check if website_url is a JSON array
-                                try {
-                                  const parsed = JSON.parse(user.website_url)
-                                  if (Array.isArray(parsed) && parsed.length > 0) {
-                                    mainUrl = parsed[0]
-                                  } else {
-                                    mainUrl = user.website_url
-                                  }
-                                } catch {
-                                  // Not JSON, treat as single URL
-                                  mainUrl = user.website_url
-                                }
-                              }
-                              return mainUrl || `https://github.com/${user.github_username}`
+                              const allUrls = parseUserUrls(user)
+                              return allUrls[0] || `https://github.com/${user.github_username}`
                             })()}
                             target="_blank"
                             rel="noopener noreferrer"
@@ -233,49 +256,12 @@ export default function LeaderboardTable({ users, currentUserGithubUsername }: L
                         </div>
                         {/* Display favicons for URLs */}
                         {(() => {
-                          // Get all URLs: main is first in other_urls, or use website_url as main
-                          // website_url might be a JSON array if other_urls column doesn't exist
-                          const allUrls: string[] = []
-                          if (user.other_urls && user.other_urls.length > 0) {
-                            allUrls.push(...user.other_urls)
-                          } else if (user.website_url) {
-                            // Check if website_url is a JSON array
-                            try {
-                              const parsed = JSON.parse(user.website_url)
-                              if (Array.isArray(parsed) && parsed.length > 0) {
-                                allUrls.push(...parsed)
-                              } else {
-                                allUrls.push(user.website_url)
-                              }
-                            } catch {
-                              // Not JSON, treat as single URL
-                              allUrls.push(user.website_url)
-                            }
-                          }
+                          const allUrls = parseUserUrls(user)
                           return allUrls.length > 0
                         })() && (
                           <div className="flex items-center gap-2 mt-2">
                             {(() => {
-                              // Get all URLs: main is first in other_urls, or use website_url as main
-                              // website_url might be a JSON array if other_urls column doesn't exist
-                              const allUrls: string[] = []
-                              if (user.other_urls && user.other_urls.length > 0) {
-                                allUrls.push(...user.other_urls)
-                              } else if (user.website_url) {
-                                // Check if website_url is a JSON array
-                                try {
-                                  const parsed = JSON.parse(user.website_url)
-                                  if (Array.isArray(parsed) && parsed.length > 0) {
-                                    allUrls.push(...parsed)
-                                  } else {
-                                    allUrls.push(user.website_url)
-                                  }
-                                } catch {
-                                  // Not JSON, treat as single URL
-                                  allUrls.push(user.website_url)
-                                }
-                              }
-                              
+                              const allUrls = parseUserUrls(user)
                               return allUrls.filter(url => url && url.trim()).map((url, idx) => {
                                 const domain = getDomainFromUrl(url)
                                 if (!domain) return null
@@ -294,6 +280,7 @@ export default function LeaderboardTable({ users, currentUserGithubUsername }: L
                                       width={20}
                                       height={20}
                                       className="w-5 h-5 rounded object-contain"
+                                      loading="lazy"
                                       style={{ imageRendering: 'crisp-edges' }}
                                     />
                                   </a>
@@ -308,7 +295,7 @@ export default function LeaderboardTable({ users, currentUserGithubUsername }: L
 
                   {/* Contribution Grid */}
                   <td className="align-middle py-4 px-4">
-                    <ContributionGrid
+                    <MemoizedContributionGrid
                       contributionsData={user.contributions_data || {}}
                       username={user.github_username}
                       compact={true}
@@ -333,6 +320,16 @@ export default function LeaderboardTable({ users, currentUserGithubUsername }: L
             })}
           </tbody>
         </table>
+        {filteredAndSortedUsers.length > visibleRows && (
+          <div className="p-4 text-center border-t border-gray-600/30">
+            <button
+              onClick={() => setVisibleRows(prev => Math.min(prev + 20, filteredAndSortedUsers.length))}
+              className="px-4 py-2 rounded-lg bg-base-200 border border-base-300 text-base-content hover:bg-base-300 transition-colors"
+            >
+              Load more ({filteredAndSortedUsers.length - visibleRows} remaining)
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

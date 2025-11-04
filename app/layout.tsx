@@ -84,13 +84,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className={`${inter.variable}`} data-theme="gh" suppressHydrationWarning>
-      <body className="font-inter antialiased bg-gh-primary text-gh-white flex flex-col min-h-screen pb-32 md:pb-0">
+      <body className="font-inter antialiased bg-gh-primary text-gh-white pb-32 md:pb-0" style={{ touchAction: 'pan-y pan-x', WebkitOverflowScrolling: 'touch' }}>
         <AnalyticsScript />
         <Theme>
           <AppProvider>
-            <div className="flex-1">
-              {children}
-            </div>
+            {children}
             <Footer />
           </AppProvider>
         </Theme>

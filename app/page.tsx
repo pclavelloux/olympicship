@@ -36,15 +36,20 @@ export default function Home() {
 
   const fetchUsers = useCallback(async () => {
     try {
-      const response = await fetch('/api/users')
+      setIsLoading(true)
+      const response = await fetch('/api/users', {
+        // Add cache headers to reduce server load
+        cache: 'default',
+      })
       if (!response.ok) {
         throw new Error('Failed to fetch users')
       }
       const data = await response.json()
-      setUsers(data)
+      setUsers(data || [])
     } catch (error) {
       console.error('Error fetching users:', error)
       setErrorMessage('Failed to load users')
+      setUsers([]) // Set empty array on error
     } finally {
       setIsLoading(false)
     }
@@ -173,7 +178,7 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-base-300 pb-32 md:pb-0">
+    <main className="bg-base-300 pb-32 md:pb-0" style={{ minHeight: '100vh', touchAction: 'pan-y pan-x', WebkitOverflowScrolling: 'touch' }}>
       {/* Header */}
       <Header
         currentUser={currentUser}
@@ -264,7 +269,7 @@ export default function Home() {
       </div>
 
       {/* Mobile Sponsor Banner - Bottom of screen, scrolling */}
-      <SponsorBannerMobile />
+      <SponsorBannerMobile /> 
     </main>
   )
 }

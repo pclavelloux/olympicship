@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, memo } from 'react'
 import { 
   eachDayOfInterval, 
   format, 
@@ -16,7 +16,7 @@ interface ContributionGridProps {
   compact?: boolean
 }
 
-export default function ContributionGrid({ contributionsData, username, compact = false }: ContributionGridProps) {
+function ContributionGrid({ contributionsData, username, compact = false }: ContributionGridProps) {
   const { weeks, monthLabels } = useMemo(() => {
     const now = new Date()
     const yearAgo = subYears(now, 1)
@@ -228,3 +228,5 @@ export default function ContributionGrid({ contributionsData, username, compact 
     </div>
   )
 }
+
+export default memo(ContributionGrid)
