@@ -11,7 +11,7 @@ interface UserCardProps {
   user: User
   rank: number
   isCurrentUser?: boolean
-  onUpdate?: (data: { display_username: string; website_url: string; other_urls: string[] }) => void
+  onUpdate?: (data: { display_username: string; website_url: string; open_to_work?: boolean; open_for_partner?: boolean; languages?: string[] }) => void
   onRefresh?: () => void
 }
 
@@ -19,18 +19,15 @@ export default function UserCard({ user, rank, isCurrentUser, onUpdate, onRefres
   const [showModal, setShowModal] = useState(false)
   const [showTokenModal, setShowTokenModal] = useState(false)
 
-  const handleUpdate = (data: { display_username: string; website_url: string; other_urls: string[] }) => {
+  const handleUpdate = (data: { display_username: string; website_url: string; open_to_work?: boolean; open_for_partner?: boolean; languages?: string[] }) => {
     if (onUpdate) {
       onUpdate(data)
     }
   }
 
-  // Get main website: first URL from other_urls array, or fallback to website_url
-  // website_url might be a JSON array if other_urls column doesn't exist
+  // Get main website: first URL from website_url
+  // website_url might be a JSON array (multiple URLs) or a single URL string
   const getMainWebsite = (): string | undefined => {
-    if (user.other_urls && user.other_urls.length > 0) {
-      return user.other_urls[0]
-    }
     if (user.website_url) {
       // Check if website_url is a JSON array
       try {

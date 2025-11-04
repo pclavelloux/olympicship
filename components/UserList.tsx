@@ -6,7 +6,7 @@ import UserCard from './UserCard'
 interface UserListProps {
   users: User[]
   currentUserGithubUsername?: string
-  onUserUpdate?: (userId: string, data: { display_username: string; website_url: string; other_urls: string[] }) => void
+  onUserUpdate?: (userId: string, data: { display_username: string; website_url: string; open_to_work?: boolean; open_for_partner?: boolean; languages?: string[] }) => void
   onRefresh?: () => void
 }
 
