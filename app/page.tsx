@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { User } from '@/types/user'
 import LeaderboardTable from '@/components/LeaderboardTable'
 import Header from '@/components/ui/header'
@@ -17,7 +17,6 @@ export default function Home() {
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [successMessage, setSuccessMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
-  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     // Check for success/error messages in URL
@@ -133,16 +132,6 @@ export default function Home() {
     window.location.reload()
   }
 
-  const filteredUsers = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase()
-    if (!q) return users
-    return users.filter((u) => {
-      const username = (u.display_username || u.github_username || '').toLowerCase()
-      const login = (u.github_username || '').toLowerCase()
-      return username.includes(q) || login.includes(q)
-    })
-  }, [users, searchQuery])
-
   return (
     <main className="min-h-screen bg-base-300 pb-32 md:pb-0">
       {/* Header */}
@@ -215,7 +204,7 @@ export default function Home() {
                   </div>
                 ) : (
                   <LeaderboardTable
-                    users={filteredUsers}
+                    users={users}
                     currentUserGithubUsername={currentUser?.github_username}
                   />
                 )}
