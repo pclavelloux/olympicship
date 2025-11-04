@@ -202,7 +202,7 @@ export default function LeaderboardTable({ users, currentUserGithubUsername }: L
               <span className="text-sm font-medium">Looking for partners</span>
             </button>
 
-            <div className="relative">
+            {/* <div className="relative">
               <button
                 onClick={() => setShowTimeFilter(!showTimeFilter)}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-base-200 border border-base-300 text-base-content hover:bg-base-300 transition-colors"
@@ -235,7 +235,7 @@ export default function LeaderboardTable({ users, currentUserGithubUsername }: L
                   </div>
                 </>
               )}
-            </div>
+            </div> */}
           </div>
         </div>
       </div>

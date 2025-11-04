@@ -53,6 +53,15 @@ export default function Header({
             </Link>
             {/*  Divider */}
             <hr className="w-px h-8 bg-gh-primary border-none" />
+            {/* Navigation Links */}
+            {/* <nav className="hidden md:flex items-center space-x-4 ml-4">
+              <Link
+                href="/stats"
+                className="text-base-content/70 hover:text-base-content transition-colors font-medium"
+              >
+                Weekly stats
+              </Link>
+            </nav> */}
           </div>
 
           {/* Header: Right side */}

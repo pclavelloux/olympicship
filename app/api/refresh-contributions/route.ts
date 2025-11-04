@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase'
 import { fetchGitHubContributions } from '@/lib/github'
+import { upsertDailyContributions } from '@/lib/contributions'
 
 export async function POST(request: NextRequest) {
   try {
@@ -63,6 +64,14 @@ export async function POST(request: NextRequest) {
 
     if (updateError) {
       throw updateError
+    }
+
+    // Insérer/mettre à jour les contributions quotidiennes dans daily_contributions
+    try {
+      await upsertDailyContributions(user.id, contributions, supabase)
+    } catch (dailyContribError) {
+      console.error('⚠️ Failed to upsert daily contributions:', dailyContribError)
+      // Ne pas bloquer le processus si l'upsert échoue
     }
 
     return NextResponse.json({
