@@ -24,6 +24,16 @@ export default function LeaderboardTable({ users, currentUserGithubUsername }: L
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all')
   const [showTimeFilter, setShowTimeFilter] = useState(false)
 
+  // Helper function to extract domain from URL safely
+  const getDomainFromUrl = (url: string): string | null => {
+    try {
+      const urlObj = new URL(url)
+      return urlObj.hostname
+    } catch {
+      return null
+    }
+  }
+
   // Calculate filtered contributions based on time filter
   const getFilteredContributions = (contributionsData?: Record<string, number>, filter: TimeFilter = 'all'): number => {
     if (!contributionsData) return 0
@@ -188,7 +198,28 @@ export default function LeaderboardTable({ users, currentUserGithubUsername }: L
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <Link
-                            href={user.website_url || `https://github.com/${user.github_username}`}
+                            href={(() => {
+                              // Main website is first URL in other_urls array, or fallback to website_url
+                              // website_url might be a JSON array if other_urls column doesn't exist
+                              let mainUrl: string | undefined
+                              if (user.other_urls && user.other_urls.length > 0) {
+                                mainUrl = user.other_urls[0]
+                              } else if (user.website_url) {
+                                // Check if website_url is a JSON array
+                                try {
+                                  const parsed = JSON.parse(user.website_url)
+                                  if (Array.isArray(parsed) && parsed.length > 0) {
+                                    mainUrl = parsed[0]
+                                  } else {
+                                    mainUrl = user.website_url
+                                  }
+                                } catch {
+                                  // Not JSON, treat as single URL
+                                  mainUrl = user.website_url
+                                }
+                              }
+                              return mainUrl || `https://github.com/${user.github_username}`
+                            })()}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="font-semibold text-base-content hover:text-primary transition-colors truncate"
@@ -200,6 +231,77 @@ export default function LeaderboardTable({ users, currentUserGithubUsername }: L
                           <span className="text-gh-pink"> {filteredContributions.toLocaleString()} </span>
                           <span className="text-base-content/60">contributions</span>
                         </div>
+                        {/* Display favicons for URLs */}
+                        {(() => {
+                          // Get all URLs: main is first in other_urls, or use website_url as main
+                          // website_url might be a JSON array if other_urls column doesn't exist
+                          const allUrls: string[] = []
+                          if (user.other_urls && user.other_urls.length > 0) {
+                            allUrls.push(...user.other_urls)
+                          } else if (user.website_url) {
+                            // Check if website_url is a JSON array
+                            try {
+                              const parsed = JSON.parse(user.website_url)
+                              if (Array.isArray(parsed) && parsed.length > 0) {
+                                allUrls.push(...parsed)
+                              } else {
+                                allUrls.push(user.website_url)
+                              }
+                            } catch {
+                              // Not JSON, treat as single URL
+                              allUrls.push(user.website_url)
+                            }
+                          }
+                          return allUrls.length > 0
+                        })() && (
+                          <div className="flex items-center gap-2 mt-2">
+                            {(() => {
+                              // Get all URLs: main is first in other_urls, or use website_url as main
+                              // website_url might be a JSON array if other_urls column doesn't exist
+                              const allUrls: string[] = []
+                              if (user.other_urls && user.other_urls.length > 0) {
+                                allUrls.push(...user.other_urls)
+                              } else if (user.website_url) {
+                                // Check if website_url is a JSON array
+                                try {
+                                  const parsed = JSON.parse(user.website_url)
+                                  if (Array.isArray(parsed) && parsed.length > 0) {
+                                    allUrls.push(...parsed)
+                                  } else {
+                                    allUrls.push(user.website_url)
+                                  }
+                                } catch {
+                                  // Not JSON, treat as single URL
+                                  allUrls.push(user.website_url)
+                                }
+                              }
+                              
+                              return allUrls.filter(url => url && url.trim()).map((url, idx) => {
+                                const domain = getDomainFromUrl(url)
+                                if (!domain) return null
+                                return (
+                                  <a
+                                    key={idx}
+                                    href={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="hover:opacity-80 transition-opacity"
+                                    title={url}
+                                  >
+                                    <img
+                                      src={`https://www.google.com/s2/favicons?domain=${domain}&sz=64`}
+                                      alt=""
+                                      width={20}
+                                      height={20}
+                                      className="w-5 h-5 rounded object-contain"
+                                      style={{ imageRendering: 'crisp-edges' }}
+                                    />
+                                  </a>
+                                )
+                              })
+                            })()}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </td>

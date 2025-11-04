@@ -11,7 +11,7 @@ interface UserCardProps {
   user: User
   rank: number
   isCurrentUser?: boolean
-  onUpdate?: (data: { display_username: string; website_url: string }) => void
+  onUpdate?: (data: { display_username: string; website_url: string; other_urls: string[] }) => void
   onRefresh?: () => void
 }
 
@@ -19,10 +19,31 @@ export default function UserCard({ user, rank, isCurrentUser, onUpdate, onRefres
   const [showModal, setShowModal] = useState(false)
   const [showTokenModal, setShowTokenModal] = useState(false)
 
-  const handleUpdate = (data: { display_username: string; website_url: string }) => {
+  const handleUpdate = (data: { display_username: string; website_url: string; other_urls: string[] }) => {
     if (onUpdate) {
       onUpdate(data)
     }
+  }
+
+  // Get main website: first URL from other_urls array, or fallback to website_url
+  // website_url might be a JSON array if other_urls column doesn't exist
+  const getMainWebsite = (): string | undefined => {
+    if (user.other_urls && user.other_urls.length > 0) {
+      return user.other_urls[0]
+    }
+    if (user.website_url) {
+      // Check if website_url is a JSON array
+      try {
+        const parsed = JSON.parse(user.website_url)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed[0]
+        }
+      } catch {
+        // Not JSON, treat as single URL
+      }
+      return user.website_url
+    }
+    return undefined
   }
 
   const handleTokenSuccess = () => {
@@ -55,9 +76,9 @@ export default function UserCard({ user, rank, isCurrentUser, onUpdate, onRefres
               <span className="text-2xl font-bold text-gray-600 dark:text-gray-400">
                 #{rank}
               </span>
-              {user.website_url ? (
+              {getMainWebsite() ? (
                 <a
-                  href={user.website_url}
+                  href={getMainWebsite()}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-xl font-semibold text-blue-600 dark:text-blue-400 hover:underline"
