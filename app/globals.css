@@ -108,6 +108,15 @@ body {
       transform: translateX(0);
     }
   }
+  
+  @keyframes scroll-horizontal {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
 }
 
 .animate-in {
@@ -152,4 +161,12 @@ body {
 
 .slide-in-from-right-2 {
   animation-name: slide-in-from-right;
+}
+
+.animate-scroll-horizontal {
+  animation: scroll-horizontal 30s linear infinite;
+}
+
+.animate-scroll-horizontal:hover {
+  animation-play-state: paused;
 }

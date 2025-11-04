@@ -6,6 +6,7 @@ import LeaderboardTable from '@/components/LeaderboardTable'
 import Header from '@/components/ui/header'
 import SponsorPanel from '@/components/SponsorPanel'
 import SponsorBanner from '@/components/SponsorBanner'
+import SponsorBannerMobile from '@/components/SponsorBannerMobile'
 import { User as UserIcon } from 'lucide-react'
 import GitHubConnectButton from '@/components/GitHubConnectButton'
 import confetti from 'canvas-confetti'
@@ -143,7 +144,7 @@ export default function Home() {
   }, [users, searchQuery])
 
   return (
-    <main className="min-h-screen bg-base-300">
+    <main className="min-h-screen bg-base-300 pb-32 md:pb-0">
       {/* Header */}
       <Header
         currentUser={currentUser}
@@ -168,19 +169,19 @@ export default function Home() {
       )}
 
       {/* Main Container */}
-      <div className="container mx-auto px-4 py-8 max-w-[1920px]">
+      <div className="container mx-auto px-4 py-8 pb-24 md:pb-8 max-w-[1920px]">
 
         {/* Grid Layout: responsive - 1 column on mobile, 6 columns (1-4-1) on desktop */}
         <div className="grid grid-cols-6 gap-8 py-8">
           {/* Left Sponsor Panel - Desktop only - 1 column */}
-          <div className="col-span-1 min-w-0 bg-gh-tertiary">
+          <div className="hidden md:block col-span-1 min-w-0 bg-gh-tertiary">
             <SponsorPanel side="left" />
           </div>
 
           {/* Main Content - Full width on mobile, 4 columns on desktop */}
-          <div className="col-span-4 ">
+          <div className="col-span-6 md:col-span-4">
             {/* Hero */}
-            <div className="text-center mb-8">
+            <div className="text-center md:mb-8 mb-4 ">
               <h1 className="text-4xl lg:text-6xl font-extrabold mb-4 tracking-tight">
                 <span className=" bg-clip-text text-gh-white">
                   Who ships the most?
@@ -223,11 +224,14 @@ export default function Home() {
           </div>
 
           {/* Right Sponsor Panel - Desktop only - 1 column */}
-          <div className=" col-span-1 bg-gh-tertiary">
+          <div className="hidden md:block col-span-1 bg-gh-tertiary">
             <SponsorPanel side="right" />
           </div>
         </div>
       </div>
+
+      {/* Mobile Sponsor Banner - Bottom of screen, scrolling */}
+      <SponsorBannerMobile />
     </main>
   )
 }
