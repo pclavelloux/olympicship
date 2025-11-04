@@ -13,7 +13,9 @@ const inter = Inter({
   variable: '--font-inter',
 })
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://olympicship.com';
+// Ensure the site URL always has a protocol
+const rawSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://olympicship.com';
+const siteUrl = rawSiteUrl.startsWith('http') ? rawSiteUrl : `https://${rawSiteUrl}`;
 const siteName = 'OlympicShip';
 const siteDescription = 'The Olympics of GitHub. Compete to become the top code shipper — no fake stats, just real commit data straight from GitHub.';
 const siteKeywords = [
